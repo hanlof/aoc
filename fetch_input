@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [ -z $1 ]; then
+	echo provide day plz
+	exit
+fi
+which_day="$1"
+tname=`mktemp`
+
+FF_PROFILE_LOCATION=/home/hlofving/snap/firefox/common/.mozilla/firefox/e7gkwsyh.default-release
+cp ${FF_PROFILE_LOCATION}/cookies.sqlite "$tname"
+SQL="select value from moz_cookies where host='.adventofcode.com' and name='session'"
+sqlite3 -separator ' ' "$tname" "$SQL" | {
+	read sessioncookie
+        curl -b session="$sessioncookie" https://adventofcode.com/2022/day/${which_day}/input
+}
