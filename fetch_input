@@ -7,7 +7,16 @@ fi
 which_day="$1"
 tname=`mktemp`
 
+# Use git config to parse .ini file because git config is sane and amazing
+# git config -f ./profiles.ini --get-regexp 'profile.*default'
+# yields: "profile0.default 1"
+
+# Then 
+# Profile directory is fetched with D=$(git config -f ./profiles.ini --get 'profile0.path')
+
 FF_PROFILE_LOCATION=/home/hlofving/snap/firefox/common/.mozilla/firefox/e7gkwsyh.default-release
+
+# Copy the cookies file because file locking shenanigans
 cp ${FF_PROFILE_LOCATION}/cookies.sqlite "$tname"
 SQL="select value from moz_cookies where host='.adventofcode.com' and name='session'"
 sqlite3 -separator ' ' "$tname" "$SQL" | {
