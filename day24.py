@@ -16,6 +16,7 @@ signstomovement = {
     "<": (-1,  0),
     "v": ( 0,  1),
     "^": ( 0, -1) }
+
 class Blizzard:
     def __init__(s, x, y, sign, dim):
         s.maxx = dim[0] - 2
@@ -39,6 +40,8 @@ class Blizzard:
         if y == 0: y = s.maxy
         if y > s.maxy: y = 1
         return Blizzard(x, y, s.sign, (s.maxx + 2, s.maxy + 2))
+    def toxytuple(s):
+        return (s.x, s.y)
     def __eq__(s, tup):
         if type(tup) is Blizzard:
             return tup.x == s.x and tup.y == s.y
@@ -56,29 +59,28 @@ class Blizzard:
     def __lt__(s, o):
         return s.x < o.x
 
-
-dimensions = None
-walls = None
 def parse(inputlines):
     blizzards = list()
     global walls
     walls = set()
     minx, maxx, miny, maxy = 0, 0, 0, 0
-    global dimensions
     dimensions = (len(inputlines[0]), len(inputlines))
     for y, line in enumerate(inputlines):
-        print(y, line)
         for x, c in enumerate(line):
             if c in "<>v^":
                 b = Blizzard(x, y, c, dimensions)
                 blizzards.append(b)
             elif c == "#":
                 walls.add( (x, y) )
-    return blizzards, walls
+            elif y == 0 and c == ".":
+                walls.add( (x, y - 1) )
+                startpos = (x, y)
+            elif y == dimensions[1] - 1 and c == ".":
+                walls.add( (x, y + 1) )
+                endpos = (x, y)
+    return blizzards, walls, startpos, endpos
 
-playerpos = (1, 0)
-
-def printfield(bli, dim):
+def printfield(bli, dim, playerpos):
     for y in range(dim[1]):
         for x in range(dim[0]):
             i = bli.count((x, y)) if type(bli) is list else None
@@ -92,155 +94,63 @@ def printfield(bli, dim):
             else: print(" ", end="")
         print("")
 
-goalpos = (100, 36)
-blizzards, walls = parse(myinput)
-
-#goalpos=(6, 5) # for easy input!
-#blizzards, walls = parse(easyinput)
-
-walls.add( (1, -1) )
-walls.add( (100, 37) )
-
-print("Initial state")
-
-def movementchoices(bliz, playerpos):
+def movementchoices(bliz, px, py):
     global  walls
     choices = list()
-    px, py = playerpos
-    #for rx, ry in [(1, 0), (0, 1), (-1, 0), (0, -1), (0, 0)]:
     for rx, ry in [(0, 0), (0, 1), (1, 0), (-1, 0), (0, -1)]:
         wantedpos = (px + rx, py + ry)
-        if Blizzard(px + rx, py + ry, "<", (0,0)) not in bliz and \
+        if wantedpos not in bliz and \
            wantedpos not in walls:
-               choices.append(wantedpos)
-    return choices
+               yield wantedpos
 
-#b = list(blizzards)
-#for i in range(0):
-#    b = [b.nextpos() for b in b]
-#    print("\nMinute", 1+i)
-#    choices = movementchoices(set(b), playerpos)
-#    if len(choices) == 2: playerpos = choices[1]
-#    if len(choices) > 3:
-#        print("END AT", i + 1)
-#        break
-#    #printfield((b), dimensions)
-#    print(choices)
+def findfastest(startpos, endpos, startminute):
+    global cachedblizzardpositions
+    counter = 0
+    fastest = None
+    donepositions = set()
+    queue = set()
+    queue.add ( (startpos[0], startpos[1], startminute) )
+    while len(queue) > 0:
+        curx, cury, minutes = queue.pop()
+        if fastest is not None:
+            if minutes > fastest:
+                continue
+        blockedpositions = cachedblizzardpositions[minutes % 700]
+        for choice in movementchoices(blockedpositions, curx, cury):
+            if endpos == choice:
+                if fastest is None:
+                    fastest = minutes
+                    continue
+                if minutes < fastest:
+                    fastest = minutes
+                    continue
+            temp = (choice[0], choice[1], minutes + 1)
+            if not temp in donepositions:
+                queue.add(temp)
+        donepositions.add( (curx, cury, minutes) )
+        if (counter % 20000) == 10000:
+            print("Working... cycle is", counter, "minutes is", minutes, "queue-length is", len(queue))
+        counter += 1
+    print("Done! Fastest trip from %s to %s starting at minude %d is %d" % (startpos, endpos, startminute, fastest))
+    return fastest
 
+blizzards, walls, playerpos, goalpos = parse(myinput)
 
-counter = 0
-fastest = 350
-def printpotential(qitem):
-    dx = (goalpos[0] - qitem[1][0])
-    dy = (goalpos[1] - qitem[1][1])
-    print("Potential:", dx, dy, dx+dy)
-
-def getpotential(qitem):
-    return (goalpos[0] - qitem[1][0])
+print("Pre-caching blizzard positions. Assuming the blizzards cycle at 700, have not verified for other inputs than my own... ", end="")
+sys.stdout.flush()
 
 cachedblizzardpositions = dict()
-cachedblizzardpositions[0] = set(blizzards)
-def blizzardpositions(blizzards, minute):
-    minute = minute % 700
-    if minute in cachedblizzardpositions:
-        return cachedblizzardpositions[minute]
-    newbliz = [b.nextpos() for b in blizzards]
-    cachedblizzardpositions[minute] = set(newbliz)
-    return newbliz
-
-#bliz = set(blizzards)
-pastblizzards = set()
-print("Pre-caching blizzard positions")
 for i in range(0,700):
-    blizzards = blizzardpositions(blizzards, i+1)
-    assert type(blizzards) is list or (i + 1) == 700,\
-        "Blizzards must be list when building cache " + str(i)
+    #print("\x1b[40D\x1b[31C""%d/700" % (i + 1), end="")
+    #sys.stdout.flush()
+    cachedblizzardpositions[i] = set([b.toxytuple() for b in blizzards])
+    for b in blizzards:
+        b.advance()
 
-donepositions = set()
-queue = set( [((1,0), 0)] )
-while len(queue) > 0:
-    temp = queue.pop()
-    if temp in donepositions:
-        continue
-    playerpos, minutes = temp
-    if minutes > fastest:
-        continue
-    bl = cachedblizzardpositions[minutes]
-    assert type(bl) is set, "Expected type set"
-    choices = movementchoices(set(bl), playerpos)
-    if goalpos in choices:
-        if minutes < fastest:
-            fastest = minutes
-            print("New solution!", minutes)
-        continue
-    for choice in choices:
-        newplayerpos = tuple(choice)
-        newfield = cachedblizzardpositions[minutes + 1]
-        queue.add((newplayerpos, minutes + 1))
+print("")
+phase1fastest = findfastest( (1, 0), goalpos, 0)
+phase2fastest = findfastest( goalpos, (1, 0), phase1fastest)
+phase3fastest = findfastest( (1, 0), goalpos, phase2fastest)
 
-    donepositions.add( (playerpos, minutes) )
-
-    if (counter % 10000) == 0 or counter < 10:
-        print(counter, "f", fastest, minutes, playerpos, len(queue))
-    counter += 1
-print("Phase 1 done! Fastest (part 1 solution) is ", fastest)
-
-donepositions = set()
-queue = set( [((100, 36), fastest)] )
-fastest = 2000
-goalpos = (1, 0)
-while len(queue) > 0:
-    temp = queue.pop()
-    if temp in donepositions:
-        continue
-    playerpos, minutes = temp
-    if minutes > fastest:
-        continue
-    bl = cachedblizzardpositions[minutes % 700]
-    assert type(bl) is set, "Expected type set"
-    choices = movementchoices(set(bl), playerpos)
-    if goalpos in choices:
-        if minutes < fastest:
-            fastest = minutes
-            print("New solution!", minutes)
-        continue
-    for choice in choices:
-        newplayerpos = tuple(choice)
-        queue.add((newplayerpos, minutes + 1))
-    donepositions.add( (playerpos, minutes) )
-
-    if (counter % 10000) == 0 or counter < 10:
-        print(counter, "f+", fastest, minutes, playerpos, len(queue))
-    counter += 1
-
-print("Reached the start again after", fastest, "moves. Tracing back to end again!")
-
-donepositions = set()
-queue = set( [((1, 0), fastest)] )
-fastest = 3000
-goalpos = (100, 36)
-while len(queue) > 0:
-    temp = queue.pop()
-    if temp in donepositions:
-        continue
-    playerpos, minutes = temp
-    if minutes > fastest:
-        continue
-    bl = cachedblizzardpositions[minutes % 700]
-    assert type(bl) is set, "Expected type set"
-    choices = movementchoices(set(bl), playerpos)
-    if goalpos in choices:
-        if minutes < fastest:
-            fastest = minutes
-            print("New solution!", minutes)
-        continue
-    for choice in choices:
-        newplayerpos = tuple(choice)
-        queue.add((newplayerpos, minutes + 1))
-    donepositions.add( (playerpos, minutes) )
-
-    if (counter % 10000) == 0 or counter < 10:
-        print(counter, "f+", fastest, minutes, playerpos, len(queue))
-    counter += 1
-
-print("Reached the gool again. Phew! Part 2 answer is", fastest)
+print("Part 1:", phase1fastest)
+print("Part 2:", phase3fastest)
