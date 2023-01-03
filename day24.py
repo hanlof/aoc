@@ -1,4 +1,4 @@
-import sys, itertools as I, re, copy, os, operator as O
+import sys, os, copy, re, itertools as I, operator as O
 B = __builtins__
 
 easyinput = """\
@@ -28,10 +28,8 @@ class Blizzard:
     def advance(s):
         s.x += s.step[0]
         s.y += s.step[1]
-        if s.x == 0: s.x = s.maxx
-        if s.x > s.maxx: s.x = 1
-        if s.y == 0: s.y = s.maxy
-        if s.y > s.maxy: s.y = 1
+        s.x = 1 + ((s.x - 1) % (s.maxx))
+        s.y = 1 + ((s.y - 1) % (s.maxy))
     def nextpos(s):
         x = s.x + s.step[0]
         y = s.y + s.step[1]
@@ -103,6 +101,13 @@ def movementchoices(bliz, px, py):
            wantedpos not in walls:
                yield wantedpos
 
+# The only unique parameters for a state is minute and x, y position
+# because the minute explicitly decides the state of the moving blizards.
+# The blizards cycle around to starting position after 700 steps (my input)
+# so we can easily pre-cache them all.
+# The queue of states to try culls itself because it's held in a set()
+# A separate set() of previously tried positions is maintained as well
+# so we don't add old processed positions to the queue.
 def findfastest(startpos, endpos, startminute):
     global cachedblizzardpositions
     counter = 0
@@ -136,13 +141,13 @@ def findfastest(startpos, endpos, startminute):
 
 blizzards, walls, playerpos, goalpos = parse(myinput)
 
+import time
+timing = [ time.time() ]
 print("Pre-caching blizzard positions. Assuming the blizzards cycle at 700, have not verified for other inputs than my own... ", end="")
 sys.stdout.flush()
 
 cachedblizzardpositions = dict()
 for i in range(0,700):
-    #print("\x1b[40D\x1b[31C""%d/700" % (i + 1), end="")
-    #sys.stdout.flush()
     cachedblizzardpositions[i] = set([b.toxytuple() for b in blizzards])
     for b in blizzards:
         b.advance()
@@ -154,3 +159,6 @@ phase3fastest = findfastest( (1, 0), goalpos, phase2fastest)
 
 print("Part 1:", phase1fastest)
 print("Part 2:", phase3fastest)
+
+timing.append( time.time() )
+print("Runtime: %.3fs" % (timing[1] - timing[0]))
