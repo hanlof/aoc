@@ -1,7 +1,9 @@
 import itertools as I
 import operator as O
 B = __builtins__
-import re
+import re, io
+import sys, tty, termios
+import select, copy
 
 width, height = 0, 0
 minx, maxx, miny, maxy = list(), list(), list(), list()
@@ -37,7 +39,6 @@ def parse(inputlines):
                 if y <= miny[x]: miny[x] = y
                 if y >= maxy[x]: maxy[x] = y
 
-    del(m)
     return outputmap, next(it)
 
 
@@ -62,10 +63,6 @@ myinput = open("input22").read().splitlines()
 
 map, moves = parse(myinput)
 
-#for i in range(len(map)):
-#    print(map[i], minx[i], maxx[i])
-#print("moves", moves)
-
 R = 0
 D = 1
 L = 2
@@ -75,11 +72,9 @@ def part1moves():
     ypos = 0
     xpos = minx[0]
     direction = 0
-    it = iter(re.split("(R|L)", moves))
-    for m in it:
+    for m in iter(re.split("(R|L)", moves)):
         if m.isdigit():
-            l = int(m)
-            for i in range(l):
+            for i in range(int(m)):
                 wantedy = ypos
                 wantedx = xpos
                 if direction == R:
@@ -107,18 +102,7 @@ def part1moves():
             raise Exception("WHAAAAAAAA")
     return (xpos, ypos, direction)
 
-"""
-  1122
-  1122
-  33
-  33
-5544
-5544
-66
-66
-"""
-
-dirs=dict(zip([0,1,2,3],["R","D","L","U"]))
+# handle all the wrap-arounds and direction changing in part2
 def edgemovement(x, y, d):
     if 0 <= y <= 49: # square 1 and 2
         if 50 <= x <= 99: # square 1
@@ -160,18 +144,15 @@ def edgemovement(x, y, d):
                 return (100 + x, 0, D)
     raise Exception(x, y, d)
 
-import copy
-def part2moves(printat=0):
+def part2moves(printat=None):
     ypos = 0
     xpos = minx[0]
-    direction = 0
-    it = iter(re.split("(R|L)", moves))
+    direction = R
     tracemap = copy.deepcopy(map)
     counter = 0
-    for m in it:
+    for m in iter(re.split("(R|L)", moves)):
         if m.isdigit():
-            l = int(m)
-            for i in range(l):
+            for i in range(int(m)):
                 wantedy = ypos
                 wantedx = xpos
                 wanteddir = direction
@@ -200,16 +181,14 @@ def part2moves(printat=0):
                 line = tracemap[ypos]
                 #line = line[:xpos] + chr(0x30 + (counter % 10)) + line[
                 # move 222 suspicious
-                whatline = printat
-                if whatline < counter < whatline + 30:
-                    command = m
-                    traceline = ypos
-                    tracemap[ypos] = tracemap[ypos][:xpos] + chr(0x30 + (counter % 10)) + tracemap[ypos][xpos+1:]
-                if counter == whatline + 29:
-                    print( (xpos, ypos, direction) )
-
-
-            #print("Moved (%d steps) to" % l, (xpos, ypos), "facing", direction)
+                if printat is not None:
+                    whatline = printat
+                    if whatline < counter < whatline + 30:
+                        command = m
+                        traceline = ypos
+                        tracemap[ypos] = tracemap[ypos][:xpos] + chr(0x30 + (counter % 10)) + tracemap[ypos][xpos+1:]
+                    if counter == whatline + 29:
+                        print( (xpos, ypos, direction) )
             continue
         elif m == 'L':
             direction -= 1
@@ -219,12 +198,11 @@ def part2moves(printat=0):
             direction %= 4
         else:
             raise Exception("WHAAAAAAAA")
-        #print("Changed dir (%s) to" % m, direction)
-    for l in tracemap[:traceline + 40]:
-        print(l)
-    print(command)
+    if printat is not None:
+        for l in tracemap[:traceline + 40]:
+            print(l)
+        print(command)
     return (xpos, ypos, direction)
-
 
 def computepassword(x, y, d):
     return 1000 * (y + 1) + 4 * (x + 1) + direction
@@ -234,11 +212,7 @@ print("Part 1:", computepassword(xpos, ypos, direction))
 xpos, ypos, direction = part2moves()
 print("Part 2:", computepassword(xpos, ypos, direction))
 
-import io
-import sys, tty, termios
-import select
-
-def getinput():
+def ttyinput():
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
     inp = bytes()
@@ -259,14 +233,16 @@ def getinput():
 # interactive stepping. enable by changing while False to while True
 printat = 2438
 while False:
-    inp = getinput()
+    inp = ttyinput()
     if inp == bytes(b'\x1b[A'):
         print("UP")
+        printat -= 10
     if inp == bytes(b'\x1b[D'):
         printat -= 1
         print("LEFT")
     if inp == bytes(b'\x1b[B'):
         print("DOWN")
+        printat += 10
     if inp == bytes(b'\x1b[C'):
         print("RIGHT")
         printat += 1
@@ -275,8 +251,4 @@ while False:
     print(printat)
 
 # 142228 is correct
-# 35406 too low!
-
-# 126050 too low
-
 # 127050 too low
