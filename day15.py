@@ -1,8 +1,6 @@
 import sys
 import re
 
-print(__file__)
-
 class XY():
     def __init__(s, x, y):
         s.x = x; s.y = y
@@ -22,8 +20,63 @@ class XY():
             return None
         ydist = abs(s.y - y)
         return [(s.x - s.dist + ydist), (s.x + s.dist - ydist)]
+    def intersect(s, o):
+        intervaltop = o.coversat(s.y - s.dist)
+        intervalbot = o.coversat(s.y + s.dist)
+        intervalmid = o.coversat(s.y)
+        covers = 0
+        if intervaltop is not None and intervaltop[0] <= s.x <= intervaltop[1]:
+            covers |= 1 # TOP
+        if intervalbot is not None and intervalbot[0] <= s.x <= intervalbot[1]:
+            covers |= 2 # BOT
+        if intervalmid is not None and intervalmid[0] <= (s.x - s.dist) <= intervalmid[1]:
+            covers |= 4 # LEFT
+        if intervalmid is not None and intervalmid[0] <= (s.x + s.dist) <= intervalmid[1]:
+            covers |= 8 # RIGHT
+        if covers == 0:
+            return None
+        elif covers == 15:
+            return None
+        elif covers == 1|4:
+            pass
+            #print("covers topleft")
+        elif covers == 1|8:
+            pass #print("covers topright")
+        elif covers == 2|4:
+            pass #print("covers botleft")
+        elif covers == 2|8:
+            pass #print("covers botright")
+        elif covers == 1:
+            p1 = (s.y - s.dist) + ((intervaltop[1] - s.x) // 2)
+            p2 = (s.y - s.dist) + ((s.x - intervaltop[0]) // 2)
+            return (p1, p2)
+        elif covers == 2:
+            p1 = (s.y + s.dist) - ((intervalbot[1] - s.x) // 2)
+            p2 = (s.y + s.dist) - ((s.x - intervalbot[0]) // 2)
+            return (p1, p2)
+        elif covers == 4:
+            dy = o.y - s.y
+            px = o.x + o.dist
+            tx1 = px + dy
+            tx2 = px - dy
+            dx1 = s.x + s.dist - tx1
+            dx2 = s.x + s.dist - tx2
+            return (s.y - (dx2 // 2), s.y + (dx1 // 2))
 
-#inputfile = sys.stdin
+        elif covers == 8:
+            dy = o.y - s.y
+            px = o.x - o.dist
+            tx1 = px - dy
+            tx2 = px + dy
+            dx1 = s.x + s.dist - tx1
+            dx2 = s.x + s.dist - tx2
+            return (s.y - (dx2 // 2), s.y + (dx1 // 2))
+
+        else:
+            assert False, "not implemented covering pattern"
+            print("WHAT")
+
+
 inputfile = open("input15")
 allinput = inputfile.readlines()
 sensors = list()
@@ -51,7 +104,7 @@ class Intervals():
     def add( self, start, end ):
         updated = None
         updatedidx = 0
-        for idx, i in zip(range(len(self.intervals)), self.intervals):
+        for idx, i in enumerate(self.intervals):
             if i[0] <= start <= i[1] and end > i[1]: # new one overlaps the end of cur
                 i[1] = end
                 updated = i
@@ -77,8 +130,8 @@ class Intervals():
         else:
             # remove and reinsert the updated interval in case it the changed
             # interval overlaps more intervals
-            #del self.intervals[updatedidx]
-            #self.add(updated[0], updated[1])
+            del self.intervals[updatedidx]
+            self.add(updated[0], updated[1])
             pass
 
 inter = Intervals()
@@ -87,59 +140,64 @@ for i in sensors:
     if interv is not None:
         inter.add( interv[0], interv[1] )
 
-beacons_at20M = set([b.x for b in beacons if b.y==2000000])
-print(beacons_at20M)
-print(inter.intervals)
-print([a[1] - a[0] + 1 for a in inter.intervals])
-# XXX must remove all beacons from this number before delivering answer
-print(sum([a[1] - a[0] + 1 for a in inter.intervals]))
-ans = sum([a[1] - a[0] + 1 for a in inter.intervals]) - len(beacons_at20M)
+beacons_at2M = set([b.x for b in beacons if b.y==2000000])
+lengths = [a[1] - a[0] + 1 for a in inter.intervals]
+# must remove all beacons from the sum of lengths to get the correct answer
+ans = sum(lengths) - len(beacons_at2M)
 print("Part 1:", ans)
+
+
+def visualiseshapes():
+    s1 = XY(-3, -5)
+    s1.setnearest(XY(2, 0))
+    s2 = XY(2, 7)
+    s2.setnearest(XY(7, 2))
+    for y in range(-12, 12):
+        print("%-3d" % y, end="")
+        for x in range(-20, 20):
+            cov1 = s1.coversat(y)
+            cov2 = s2.coversat(y)
+            if cov1 is not None and x in cov1:
+                print("#", end="")
+            elif cov2 is not None and x in cov2:
+                print("@", end="")
+            else:
+                print(" ", end="")
+        print("")
+    print(s2.intersect(s1))
+
+# for part 2 it takes a long time to calculate all intervals for 4 million lines
+# but holes in the coverage can only happen near intersections between coverages
+# so find intersections and look at +/1 one line from those
+inter = Intervals()
+intersections = list()
+for i in sensors:
+    for j in sensors:
+        lines = i.intersect(j)
+        if lines is not None:
+            intersections.append(lines[0])
+            intersections.append(lines[1])
+
+for ylevel in intersections:
+    if not (0 <= ylevel <= 4000000): continue
+    for delta in [-1, 0, +1]:
+        inter = Intervals()
+        for i in sensors:
+            interv = i.coversat(ylevel + delta)
+            if interv is not None:
+                inter.add( interv[0], interv[1] )
+        if (len(inter.intervals) > 1):
+            #print("Found a hole at y =", ylevel + delta)
+            inter.intervals.sort()
+            #print(inter.intervals[0][1], inter.intervals[1][0])
+            x1 = inter.intervals[0][1]
+            x2 = inter.intervals[1][0]
+            part2x = x1 + 1
+            part2y = ylevel + delta
+            print("Part 2:", part2x * 4 * 1000 * 1000 + part2y)
+            sys.exit(0)
 
 # 2686239 is the ylevel for Part 2
 # 3316868 is the x coordinate for Part 2
 
-import cProfile, pstats, io
-from pstats import SortKey
-pr = cProfile.Profile()
-pr.enable()
 
-for ylevel in range(0, 10000):
-    inter = Intervals()
-    for i in sensors:
-        interv = i.coversat(ylevel)
-        if interv is not None:
-            inter.add( interv[0], interv[1] )
-    if (ylevel % 100000) == 0:
-        print(ylevel)
-    if (len(inter.intervals) > 1):
-        print(">>>", ylevel)
-        print(inter.intervals)
-        print([a[1] - a[0] + 1 for a in inter.intervals])
-        print(sum([a[1] - a[0] + 1 for a in inter.intervals]))
-pr.disable()
-s = io.StringIO()
-sortby = SortKey.CUMULATIVE
-ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-ps.print_stats()
-print(s.getvalue())
-
-
-#print("###")
-#sensors2 = list([XY(10, 10), XY(30, 10)])
-#sensors2[0].setnearest(XY(10, 11))
-#sensors2[1].setnearest(XY(30, 28))
-#inter = Intervals()
-#for s in sensors2:
-#    interv = s.coversat(10)
-#    if interv is not None:
-#        inter.add( interv[0], interv[1] )
-
-#print(sensors2[1])
-#print( sensors2[1].coversat(10))
-#print(inter.intervals)
-#print([a[1] - a[0] + 1 for a in inter.intervals])
-#print(sum([a[1] - a[0] + 1 for a in inter.intervals]))
-
-for i in sensors:
-    print("Dist:", i.dist)
