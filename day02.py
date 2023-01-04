@@ -1,73 +1,42 @@
 import sys
 
-print(__file__)
+# ROCK    = 1  loses to 2, wins to 3
+# PAPER   = 2  loses to 3, wins to 1
+# SCISSOR = 3  loses to 1, wins to 2
 
-#inputfile = sys.stdin
-inputfile = open("input02")
-allinput = inputfile.readlines()
+allinput = open("input02").readlines()
 
-ROCK = 1
-PAPER = 2
-SCISSOR = 3
+class RPS():
+    def __init__(s, c):
+        if   ord('A') <= ord(c) <= ord('C'): s.val = ord(c) - ord('A') + 1
+        elif ord('X') <= ord(c) <= ord('Z'): s.val = ord(c) - ord('X') + 1
+        s.loses_to = (s.val % 3) + 1
+        s.wins_to = (s.loses_to % 3) + 1
+    def score_against(s, o):
+        if   o.val == s.loses_to: return 0
+        elif o.val == s.wins_to: return 6
+        elif o.val == s.val: return 3
+        else: assert False
 
-def parse(c):
-    if c == 'A' or c == 'X': return ROCK
-    if c == 'B' or c == 'Y': return PAPER
-    if c == 'C' or c == 'Z': return SCISSOR
-
-score = 0
+p1score = 0
 for i in allinput:
-    opp = parse(i[0])
-    my = parse(i[2])
+    my = RPS(i[2])
+    p1score += my.score_against(RPS(i[0])) + my.val
 
-    if my == opp:
-        score += 3
-    elif my == ROCK and opp == SCISSOR:
-        score += 6
-    elif my == PAPER and opp == ROCK:
-        score += 6
-    elif my == SCISSOR and opp == PAPER:
-        score += 6
-    score += my
-
-
-print("Score: %d" % (score))
-
-score = 0
+p2score = 0
 for i in allinput:
-    opp = parse(i[0])
+    opp = RPS(i[0]) #parse(i[0])
     outcome = i[2]
-    if opp == ROCK:
-        if outcome == 'X': # lose
-            my = SCISSOR
-        elif outcome == 'Y': # draw
-            my = ROCK
-        elif outcome == 'Z': # win
-            my = PAPER
-    elif opp == PAPER:
-        if outcome == 'X': # lose
-            my = ROCK
-        elif outcome == 'Y': # draw
-            my = PAPER
-        elif outcome == 'Z': # win
-            my = SCISSOR
-    elif opp == SCISSOR:
-        if outcome == 'X': # lose
-            my = PAPER
-        elif outcome == 'Y': # draw
-            my = SCISSOR
-        elif outcome == 'Z': # win
-            my = ROCK
+    if outcome == 'X':  # should lose
+        myval = opp.wins_to
+        p2score += myval
+    if outcome == 'Y': # should draw
+        myval = opp.val
+        p2score += 3 + myval
+    if outcome == 'Z': # should win
+        myval = opp.loses_to
+        p2score += 6 + myval
 
-    if my == opp:
-        score += 3
-    elif my == ROCK and opp == SCISSOR:
-        score += 6
-    elif my == PAPER and opp == ROCK:
-        score += 6
-    elif my == SCISSOR and opp == PAPER:
-        score += 6
-    score += my
-
-print("Score 2: %d", score)
-# 10961 too high
+print("Day 2: Rock, Paper, Scissors")
+print("Part 1:", p1score)
+print("Part 2:", p2score)
