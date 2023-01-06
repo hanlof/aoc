@@ -6,20 +6,57 @@ if [ -z $1 ]; then
 fi
 which_day="$1"
 tname=`mktemp`
+declare -a sessioncookies
 
-# Use git config to parse .ini file because git config is sane and amazing
-# git config -f ./profiles.ini --get-regexp 'profile.*default'
-# yields: "profile0.default 1"
-
-# Then 
-# Profile directory is fetched with D=$(git config -f ./profiles.ini --get 'profile0.path')
-
-FF_PROFILE_LOCATION=/home/hlofving/snap/firefox/common/.mozilla/firefox/e7gkwsyh.default-release
-
-# Copy the cookies file because file locking shenanigans
-cp ${FF_PROFILE_LOCATION}/cookies.sqlite "$tname"
-SQL="select value from moz_cookies where host='.adventofcode.com' and name='session'"
-sqlite3 -separator ' ' "$tname" "$SQL" | {
-	read sessioncookie
-        curl -b session="$sessioncookie" https://adventofcode.com/2022/day/${which_day}/input
+try_get_sessioncookie()
+{
+  cookiesfile="${1}/cookies.sqlite"
+  if [ ! -e "$cookiesfile" ]; then return 1; fi
+  # Copy the cookies file because file locking shenanigans
+  SQL="select value,lastAccessed from moz_cookies where host='.adventofcode.com' and name='session'"
+  cp "$cookiesfile" "$tname"
+  sqloutput=$(sqlite3 -separator ' ' "$tname" "$SQL")
+  rm "$tname"
+  read sessioncookie lastaccess <<< "$sqloutput"
+  if [ "$sessioncookie" != "" ]; then
+    sessioncookies+=( "$cookiesfile $((lastaccess / 1000000)) $sessioncookie" )
+  fi
 }
+
+MOZ_DIRS=(
+  ${HOME}/snap/firefox/common/.mozilla
+#  ${HOME}/.mozilla
+)
+
+for mozdir in ${MOZ_DIRS[@]}; do
+  inifile="${mozdir}/firefox/profiles.ini"
+  PATHS=$(git config -f "${mozdir}/firefox/profiles.ini" --get-regexp 'path')
+  while read _ path; do
+    try_get_sessioncookie "${mozdir}/firefox/${path}"
+  done <<< "$PATHS"
+done
+
+
+latest=0
+if [ ${#sessioncookies[*]} == 0 ]; then
+  echo "Found no valid session cookies in ${MOZ_DIRS[@]}" >&2
+  exit 1
+elif [ ${#sessioncookies[*]} -gt 1 ]; then
+  echo -n "Found multiple firefox profiles with an adventofcode.com session cookie! " >&2
+  echo "Selecting the latest of the following:" >&2
+  for i in "${sessioncookies[@]}"; do
+    read file atime cookie <<< "$i"
+    formatteddate=$(date +"%F %H:%M" --date @${atime})
+    echo "Access time: $formatteddate Cookies file: $file" >&2
+    if [ $atime -gt $latest ]; then
+      latest=$atime
+      sessioncookie=$cookie
+    fi
+  done
+else
+  s=${sessioncookies[0]}
+  read _ _ sessioncookie <<< "$s"
+fi
+
+curl -b session="$sessioncookie" https://adventofcode.com/2022/day/${which_day}/input
+
