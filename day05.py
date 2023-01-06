@@ -1,54 +1,25 @@
 import sys
 import re
 
-print(__file__)
-
-#inputfile = sys.stdin
 inputfile = open("input05")
 allinput = inputfile.readlines()
 
-stacks = [ [], [], [], [], [], [], [], [], [], [] ]
-ans = 0
-for i in allinput:
-    if i.startswith("["):
-        for n in range(1,len(i), 4):
-            if i[n] != ' ':
-                ans = ans + 1
+p1stacks = [ [], [], [], [], [], [], [], [], [], [] ]
+p2stacks = [ [], [], [], [], [], [], [], [], [], [] ]
+for line in allinput:
+    if line.startswith("["):
+        for n in range(1, len(line), 4):
+            if line[n] != ' ':
                 d = n // 4
-                stacks[d + 1].insert(0, i[n])
-    elif i.startswith("move"):
-        r = re.search("move (\d+) from (\d+) to (\d+)", i)
-        n = int(r[1])
-        f = stacks[int(r[2])]
-        t = stacks[int(r[3])]
-        for slask in range(0, n):
-            t.append(f.pop())
-
-for i in stacks:
-    if len(i) > 0:
-        print(i[-1])
-
-stacks = [ [], [], [], [], [], [], [], [], [], [] ]
-ans = 0
-for i in allinput:
-    if i.startswith("["):
-        for n in range(1,len(i), 4):
-            if i[n] != ' ':
-                ans = ans + 1
-                d = n // 4
-                stacks[d + 1].insert(0, i[n])
-    elif i.startswith("move"):
-        r = re.search("move (\d+) from (\d+) to (\d+)", i)
-        n = int(r[1])
-        f = stacks[int(r[2])]
-        t = stacks[int(r[3])]
-        tmp = []
-        for slask in range(0, n):
-            tmp.insert(0, f.pop())
-        for tmp2 in tmp:
-            t.append(tmp2)
-print("----")
-for i in stacks:
-    if len(i) > 0:
-        print(i[-1])
+                p1stacks[d].insert(0, line[n])
+                p2stacks[d].insert(0, line[n])
+    elif line.startswith("move"):
+        r = re.search("move (?P<howmany>\d+) from (?P<from>\d+) to (?P<to>\d+)", line)
+        n, src, dst = int(r['howmany']), int(r['from']) - 1, int(r['to']) - 1
+        p1stacks[dst].extend(reversed(p1stacks[src][-n:]))
+        del(p1stacks[src][-n:])
+        p2stacks[dst].extend(p2stacks[src][-n:])
+        del(p2stacks[src][-n:])
+print("Part 1:", "".join([s[-1] for s in p1stacks if len(s) > 0]))
+print("Part 2:", "".join([s[-1] for s in p2stacks if len(s) > 0]))
 
