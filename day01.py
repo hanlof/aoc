@@ -1,16 +1,11 @@
-import sys
-
-inputfile = open("input01")
-allinput = inputfile.readlines()
-
-parsedinput = [[]]
-for i in allinput:
-    if i == '\n':
-        parsedinput.append([])
+allinput = open("input01").read().splitlines()
+elfs = list([0])
+for line in allinput:
+    if line == '':
+        elfs.append(0)
         continue
-    parsedinput[-1].append(int(i))
-
-parsedinput.sort(key=lambda a: sum(a))
+    elfs[-1] += int(line)
+elfs.sort()
 print("Day 1: Calorie Counting")
-print("Part 1:", sum(parsedinput[-1]))
-print("Part 2:", sum(list(map(sum, parsedinput))[-3:]))
+print("Part 1:", elfs[-1])
+print("Part 2:", sum(elfs[-3:]))
