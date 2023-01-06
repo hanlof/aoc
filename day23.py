@@ -18,7 +18,7 @@ easystring = \
 ..............
 .............."""
 
-myinput = open("input23").readlines()
+myinput = open("inputdata/input23").readlines()
 easyinput = easystring.split("\n")
 
 N  =  0-1j; S  =  0+1j; W  = -1+0j; E  = +1+0j

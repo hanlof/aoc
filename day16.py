@@ -42,7 +42,7 @@ class Valve():
     def __repr__(s):
         return "V<%s %d (%s)>" % (s.name, s.rate, str(s.tunnels))
 
-inputfile = open("input16")
+inputfile = open("inputdata/input16")
 allinput = inputfile.readlines()
 
 count = 1

@@ -16,7 +16,7 @@ robots[ORE] = 1
 
 blueprints=dict()
 import re
-allinput = open("input19").readlines()
+allinput = open("inputdata/input19").readlines()
 for l in allinput:
     r = re.search("^Blueprint (\d+): Each ore robot costs (\d+) ore. Each clay robot costs (\d+) ore. Each obsidian robot costs (\d+) ore and (\d+) clay. Each geode robot costs (\d+) ore and (\d+) obsidian\..*", l)
     bpindex = int(r[1])

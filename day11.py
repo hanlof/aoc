@@ -6,7 +6,7 @@ print(__file__)
 
 #inputfile = sys.stdin
 
-inputfile = open("input11")
+inputfile = open("inputdata/input11")
 allinput = inputfile.readlines()
 
 class Item():

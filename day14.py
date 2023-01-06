@@ -4,7 +4,7 @@ import re
 print(__file__)
 
 #inputfile = sys.stdin
-inputfile = open("input14")
+inputfile = open("inputdata/input14")
 allinput = inputfile.readlines()
 
 # 64 x 41

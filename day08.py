@@ -5,7 +5,7 @@ import os
 print(__file__)
 
 #inputfile = sys.stdin
-inputfile = open("input08")
+inputfile = open("inputdata/input08")
 allinput = inputfile.readlines()
 
 map = [ ]

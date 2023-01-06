@@ -28,7 +28,7 @@ for k, v in d.items():
 # 302875106592253
 print("---")
 _sum = 0
-for i in open("input25").readlines():
+for i in open("inputdata/input25").readlines():
     #print(sn2int(i[:-1]))
     _sum = _sum + sn2int(i[:-1])
 

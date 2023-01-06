@@ -27,6 +27,6 @@ def part2scores(lines):
             yield 6 + RPS(line[0]).loses_to
 
 print("Day 2: Rock, Paper, Scissors")
-inputlines = open("input02").readlines()
+inputlines = open("inputdata/input02").readlines()
 print("Part 1:", sum(part1scores(inputlines)))
 print("Part 2:", sum(part2scores(inputlines)))

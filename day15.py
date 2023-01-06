@@ -77,7 +77,7 @@ class XY():
             print("WHAT")
 
 
-inputfile = open("input15")
+inputfile = open("inputdata/input15")
 allinput = inputfile.readlines()
 sensors = list()
 beacons = list()

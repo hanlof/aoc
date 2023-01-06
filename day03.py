@@ -2,7 +2,7 @@ import sys
 
 print("Day 3: Rucksack Reorganization")
 
-allinput = open("input03").read().splitlines()
+allinput = open("inputdata/input03").read().splitlines()
 
 def getprio(c):
     lettervalue = ord(c)

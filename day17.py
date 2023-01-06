@@ -90,7 +90,7 @@ def prune(queue):
                 queue.append(trycoord)
     f.rocks = finalset
 
-allinput = open("input17").readline()
+allinput = open("inputdata/input17").readline()
 
 import itertools
 

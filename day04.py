@@ -2,7 +2,7 @@ import sys
 import re
 
 print("Day 4: Camp Cleanup")
-allinput = open("input04").readlines()
+allinput = open("inputdata/input04").readlines()
 
 p1ans, p2ans = 0, 0
 for i in allinput:

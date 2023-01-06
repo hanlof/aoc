@@ -4,7 +4,7 @@ import re
 print(__file__)
 
 #inputfile = sys.stdin
-inputfile = open("input12")
+inputfile = open("inputdata/input12")
 allinput = inputfile.readlines()
 
 # 64 x 41
@@ -115,5 +115,6 @@ while len(nodequeue) > 0:
 
 #for i in nodemap:
 #    print(i[10:])
+
 
 print("Part 1:", endnode.distance)

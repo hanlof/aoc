@@ -1,4 +1,4 @@
-allinput = open("input01").read().splitlines()
+allinput = open("inputdata/input01").read().splitlines()
 elfs = list([0])
 for line in allinput:
     if line == '':

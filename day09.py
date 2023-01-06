@@ -4,7 +4,7 @@ import os
 import itertools
 
 print("Day 9: Rope simulations")
-allinput = open("input09").readlines()
+allinput = open("inputdata/input09").readlines()
 easyinput = """R 4
 U 4
 L 3

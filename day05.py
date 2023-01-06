@@ -1,7 +1,7 @@
 import sys
 import re
 
-inputfile = open("input05")
+inputfile = open("inputdata/input05")
 allinput = inputfile.readlines()
 
 p1stacks = [ [], [], [], [], [], [], [], [], [], [] ]

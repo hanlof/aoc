@@ -5,7 +5,7 @@ units = set()
 maxcoord = [0, 0, 0]
 def parse():
     global maxcoord
-    inputlines = open("input18").readlines()
+    inputlines = open("inputdata/input18").readlines()
     for line in inputlines:
         unit = tuple(map(int, line.split(",")))
         units.add(unit)

@@ -59,7 +59,7 @@ easyinput = """\
 10R5L5R10L4R5L5
 """.splitlines()
 
-myinput = open("input22").read().splitlines()
+myinput = open("inputdata/input22").read().splitlines()
 
 map, moves = parse(myinput)
 

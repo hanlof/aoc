@@ -10,7 +10,7 @@ easyinput = """\
 ######.#
 """.splitlines()
 
-myinput = open("input24").read().splitlines()
+myinput = open("inputdata/input24").read().splitlines()
 signstomovement = {
     ">": ( 1,  0),
     "<": (-1,  0),

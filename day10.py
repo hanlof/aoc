@@ -162,7 +162,7 @@ short = \
 addx 3
 addx -5""".split("\n")
 
-inputfile = open("input10")
+inputfile = open("inputdata/input10")
 allinput = inputfile.readlines()
 
 #allinput = long

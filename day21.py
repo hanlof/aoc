@@ -5,7 +5,7 @@ import fractions
 
 nodes = dict()
 
-f = open("input21")
+f = open("inputdata/input21")
 for i in f.readlines():
     s = i.split(": ")
     nodes[s[0]] = s[1][:-1]

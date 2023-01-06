@@ -1,4 +1,4 @@
-inputlines = open("input20").readlines()
+inputlines = open("inputdata/input20").readlines()
 l = list(map(int, inputlines))
 #l = [1, 2, -3, 3, -2, 0, 4]
 

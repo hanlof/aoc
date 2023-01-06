@@ -6,7 +6,7 @@ print(__file__)
 
 #inputfile = sys.stdin
 
-allinput = open("input13").readlines()
+allinput = open("inputdata/input13").readlines()
 allinput.append("\n")
 
 #l.extend(list(' ' * (3 - (len(l) % 3))))

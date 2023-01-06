@@ -5,8 +5,7 @@ import os
 print(__file__)
 
 #inputfile = sys.stdin
-inputfile = open("input07")
-allinput = inputfile.readlines()
+allinput = open("inputdata/input07").read().splitlines()
 
 dirsizes = {}
 path = "/"
