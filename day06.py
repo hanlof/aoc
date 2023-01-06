@@ -1,21 +1,7 @@
-import sys
-import re
-
-print(__file__)
-
-#inputfile = sys.stdin
-inputfile = open("input06")
-allinput = inputfile.readlines()
-
-line=allinput[0]
-for i in range(0, len(line)):
-    if len(set((line[i:i+4]))) == 4:
-        print("Part 1:", i+4)
-        break
-
-for i in range(0, len(line)):
-    if len(set((line[i:i+14]))) == 14:
-        print("Part 2:", i+14)
-        break
-
-
+inp = open("input06").readline()
+p1, p2 = None, None
+for i in range(len(inp)):
+    if p1 is None and len(set((inp[i:i +  4]))) == 4:  p1 = i + 4
+    if p2 is None and len(set((inp[i:i + 14]))) == 14: p2 = i + 14
+print("Part 1:", p1)
+print("Part 2:", p2)
