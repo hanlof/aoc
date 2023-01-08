@@ -27,15 +27,48 @@ for l in allinput:
     blueprints[bpindex] = [ [0, 0, 0, 0, 0], orecost, claycost, obsicost, geodcost ]
 import operator
 import itertools
+def potentialgeodes(m, rob, res, highest):
+    #if m <= 0: return 0
+    robrange = itertools.islice(itertools.count(rob), m)
+    r = 0
+    for i in itertools.accumulate(robrange):
+        r = i + res
+        if r > highest:
+            return r
+    return r
+
+def haspotential(minutes, georobots, geodes, highest):
+    # a simple while with integer variables is way faster than
+    # itertools.accumulate(itertools.islice(itertools.count(...), ...) etc
+    while minutes > 0:
+        geodes += georobots
+        if geodes > highest: return True
+        georobots += 1
+        minutes -= 1
+    return False
+
+def minutestogeo(cost, rob, obsi):
+     robiter = itertools.count(rob)
+     totobsi = itertools.accumulate(robiter, initial=obsi)
+     acclist = itertools.takewhile(lambda o: o < cost, totobsi)
+     count = 0
+     sum([1 for _ in acclist])
+     return count
+
+#In [156]: 17 * 31 * 40
+
+
 def recurse(minutesleft, robots, resources):
+    global bestresult
     global fastestobsidian
     global fastestgeo
     global cachedres
     global costs
     global highestcosts
-    possiblespending = list(map(operator.mul, highestcosts, itertools.repeat(minutesleft))) # theoretical max spending until end of time
-    #if min(map(operator.gt, resources, highestcosts)) == True:
-    #    resources = list(highestcosts)
+    if minutesleft == 0: return resources[GEO]
+    # throw away resources if we don't have enough minutes to possibly spend them
+    # improves cache hits!
+    possiblespending = list(map(operator.mul, highestcosts, itertools.repeat(minutesleft)))
     if resources[CLAY] >= possiblespending[CLAY]:
         resources[CLAY] = possiblespending[CLAY]
     if resources[ORE] >= possiblespending[ORE]:
@@ -44,47 +77,41 @@ def recurse(minutesleft, robots, resources):
         resources[OBSI] = possiblespending[OBSI]
 
     cachekey = (minutesleft,) + tuple(robots) + tuple(resources)
-    #if minutesleft < fastestobsidian:
-    #    return 0
-    #if minutesleft < fastestgeo and robots[GEO] == 0:
-    #   return 0
     if cachekey in cachedres:
         return cachedres[cachekey]
-    if minutesleft == 0: return resources[GEO]
+    # using minutestogeo loses time. too much computing for the cutting
+    #mintogeo = -1 - minutestogeo(costs[GEO][OBSI], robots[OBSI], resources[OBSI])
+    #potgeo = potentialgeodes(minutesleft, robots[GEO], resources[GEO], bestresult)
+    if not haspotential(minutesleft, robots[GEO], resources[GEO], bestresult):
+        return 0
+    #if (potgeo) <= bestresult: # cuts runtime by over 50%
+    #    return 0
     # first make a choice and spend
     # then robots collect
     # then building robots finishes
     choices = set()
     for i in range(5):
-        #if min(map(lambda p: p[0]>=p[1], zip(resources, costs[i]))) == True:
-        #   choices.add(i)
         canbuy = True
         for j in range(5):
             if resources[j] < costs[i][j]:
                 canbuy = False
         if canbuy: choices.add(i)
-    #if OBSI in choices:
-    #    if minutesleft > fastestobsidian:
-    #        fastestobsidian = minutesleft
-    #        print("Fastest", fastestobsidian, resources, robots)
-    if GEO in choices:
-        if minutesleft > fastestgeo:
-            fastestgeo = minutesleft
-            #print("Fastest", fastestgeo, resources, robots)
+    if resources[CLAY] >= possiblespending[CLAY]:
+        choices -= {CLAY}
+    if resources[ORE] >= possiblespending[ORE]:
+        choices -= {ORE}
+    if resources[OBSI] >= possiblespending[OBSI]:
+        choices -= {OBSI}
     if choices.issuperset({ORE,CLAY,OBSI,GEO}):
-        #print("Opti :o", minutesleft, resources, robots)
         choices -= {NONE}
-    #if CLAY not in robots and CLAY in choices:
-    #    choices -= {NONE} # {CLAY}
-    #if OBSI not in robots and OBSI in choices:
-    #    choices -= {NONE} # {OBSI}
-    if highestcosts[ORE] < robots[ORE]: choices -= {ORE}
-    if highestcosts[CLAY] < robots[CLAY]: choices -= {CLAY}
-    if highestcosts[OBSI] < robots[OBSI]: choices -= {OBSI}
+    if CLAY not in robots and CLAY in choices:
+        choices -= {NONE} # {CLAY}
+    if highestcosts[ORE] <= robots[ORE]: choices -= {ORE}
+    if highestcosts[CLAY] <= robots[CLAY]: choices -= {CLAY}
+    if highestcosts[OBSI] <= robots[OBSI]: choices -= {OBSI}
     #if GEO not in robots and GEO in choices:
     #    choices -= {NONE}
     geo = 0
-    #print("M ", "  " * (5 - minutesleft), "C", choices, "R", resources, robots)
     for c in choices:
         newresources = list(resources)
         newrobots = list(robots)
@@ -95,15 +122,18 @@ def recurse(minutesleft, robots, resources):
         newrobots[c] = newrobots[c] + 1
         newresources[0] = 0
         newrobots[0] = 0
-        #print(" S", "  " * (5 - minutesleft), "R", newresources, newrobots)
         g  = recurse(minutesleft - 1, newrobots, newresources)
         if g > geo: geo = g
 
     cachedres[cachekey] = geo
+
+    if geo > bestresult:
+        bestresult = geo
     return geo
 
+bestresult = 0
 highestcosts = [0, 0, 0, 0, 0]
-def runbp(c):
+def runbp(c, minutes):
     global cachedres
     cachedres = dict()
     global fastestobsidian
@@ -114,8 +144,10 @@ def runbp(c):
     costs = c
     global highestcosts
     highestcosts = list(map(max, zip(*costs)))
+    global bestresult
+    bestresult = 0
     print("Running BP", i, "=", costs)
-    return recurse(24, [0, 1, 0, 0, 0], [0, 0, 0, 0, 0])
+    return recurse(minutes, [0, 1, 0, 0, 0], [0, 0, 0, 0, 0])
 
 
 #blueprints.clear()
@@ -123,14 +155,20 @@ def runbp(c):
 #blueprints[2] = [ [0, 0, 0, 0, 0], [ 0, 2, 0, 0, 0], [ 0, 3, 0, 0, 0], [ 0, 3, 8, 0, 0], [ 0, 3, 0, 12, 0 ] ] # test input 2
 totalgeodes = dict()
 for i in blueprints:
-    geo = runbp(blueprints[i])
+    geo = runbp(blueprints[i], 24)
     totalgeodes[i] = geo
     print("... BP", i, "GEO", geo)
-    #if i > 3: continue
+    if i > 3: continue
+    pass
 
-print(totalgeodes.items())
-print("Qualuty sum:", sum([k * v for k, v in totalgeodes.items()]))
+print("Part 1:", sum([k * v for k, v in totalgeodes.items()]))
 
+geo = runbp(blueprints[1], 32)
+geo *= runbp(blueprints[2], 32)
+geo *= runbp(blueprints[3], 32)
+
+# part 2 should run up to 32nd  minute and only look at the first 3 blueprints!
+print("Part 2:", geo)
 
 # TODO! a bit too long runtime. maybe discard paths where there's not enough time left to make enough obsi robots to collect enough obsidian to make a single geo robot
 #       maybe discard paths where there's not enough time left to make enough geo robots to collect enough geodes to beat current max ?!
