@@ -1,34 +1,17 @@
-import sys
-import re
-import os
-import itertools
+import re, itertools
 
-print("Day 9: Rope simulations")
-allinput = open("inputdata/input09").readlines()
-easyinput = """R 4
-U 4
-L 3
-D 1
-R 4
-D 1
-L 5
-R 2""".split("\n")
-
-def update_tail(leader, follower):
-    dx = leader.real - follower.real
+def update_tail(head, tail):
+    dx = head.real - tail.real
     signx = (dx > 0) - (dx < 0)
-    dy = leader.imag - follower.imag
+    dy = head.imag - tail.imag
     signy = 1j * ((dy > 0) - (dy < 0))
     if (abs(dx) > 1) or (abs(dy) > 1):
-        follower += signx + signy
-    return follower
+        tail += signx + signy
+    return tail
 
 movements = {"U": -1j, "D": 1j, "L": -1, "R": 1}
 def simrope(ropelen, moves):
-    positions = set()
-    rope = list()
-    for i in range(ropelen):
-        rope.append( 0 + 0j )
+    positions, rope = set(), [0 + 0j for _ in range(ropelen)]
     for move in moves:
         r = re.match("(?P<dir>.) (?P<count>\d+)", move)
         for i in range(int(r['count'])):
@@ -38,6 +21,8 @@ def simrope(ropelen, moves):
             positions.add(rope[-1])
     return len(positions)
 
+print("Day 9: Rope simulations")
+allinput = open("inputdata/input09").readlines()
 print("Part 1:", simrope(2, allinput))
 print("Part 2:", simrope(10, allinput))
 
