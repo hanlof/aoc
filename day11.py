@@ -1,10 +1,5 @@
-import sys
 import re
-import os
-
-print(__file__)
-
-#inputfile = sys.stdin
+import operator
 
 inputfile = open("inputdata/input11")
 allinput = inputfile.readlines()
@@ -38,6 +33,13 @@ class Monkey():
         l = eval("[" + r.group('items') + "]")
         self.items = list(map(Item, l))
         self.op = r.group('operation')
+        ops = r.group('operation').split(" ")
+        if ops[2] == "old" and ops[1] == "*":
+            self.oper = operator.methodcaller("__pow__", 2)
+        elif ops[1] == "*":
+            self.oper = operator.methodcaller("__mul__", int(ops[2]))
+        elif ops[1] == "+":
+            self.oper = operator.methodcaller("__add__", int(ops[2]))
         self.test = int(r.group('test'))
         self.truetarget = int(r.group('true'))
         self.falsetarget = int(r.group('false'))
@@ -48,15 +50,14 @@ class Monkey():
     def inspectall(self, divisor):
         while len(self.items) != 0:
             item = self.items.pop(0)
-            expr = self.op.replace("old", str(item.level))
-            item.level = eval(expr)
+            item.level = self.oper(item.level)
             item.level = item.level // divisor
             item.level = item.level % 9699690 # 2*3*5*7*11*13*17*19 (keeping number small for round 2)
             if (item.level % self.test) == 0:
                 monkeys[self.truetarget].items.append(item)
             else:
                 monkeys[self.falsetarget].items.append(item)
-            self.inspectcount = self.inspectcount + 1
+            self.inspectcount += 1
 
 a = "".join(allinput)
 r = re.findall("""
@@ -98,11 +99,8 @@ else:
 for i in range(10000):
     for (index, monkey) in monkeys.items():
         monkey.inspectall(1)
-    #if i == 50:
-    #    for m in monkeys.values():
-    #        print(m)
 
-toplist = sorted(monkeys.values(), key=lambda m: (m.inspectcount), reverse=True)
+toplist = sorted(monkeys.values(), key=operator.attrgetter("inspectcount"), reverse=True)
 
 print("Part 2:", toplist[0].inspectcount * toplist[1].inspectcount)
 
