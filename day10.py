@@ -2,12 +2,6 @@ import sys
 import re
 import os
 
-print(__file__)
-
-#inputfile = sys.stdin
-
-x = 1
-cycle = 1
 
 long = \
 """addx 15
@@ -166,14 +160,17 @@ inputfile = open("inputdata/input10")
 allinput = inputfile.readlines()
 
 #allinput = long
+x = 1
+cycle = 1
 queue = list()
-
+import numpy
+picture = [ [] ]
 def draw(cycle, x):
     xpos = (cycle % 40) - 1 # why -1?? :O
     if x == xpos or (x - 1) == (xpos) or (x + 1) == (xpos):
-        print("#", end="")
+        picture[-1].append(1)
     else:
-        print(".", end="")
+        picture[-1].append(0)
 
 def processqueue(s):
     global cycle, queue, x
@@ -189,12 +186,11 @@ def processqueue(s):
         ret = cycle * x
         #print(s, cycle, x)
     if (cycle % 40) == 0:
-        print()
+        picture.append(list())
     x = x + update
     cycle = cycle + 1
     return ret
 
-signalstrength = 0
 for i in allinput:
     r = re.match("(\w+) ?(-?\d+)?", i)
     instr = r[1]
@@ -203,12 +199,90 @@ for i in allinput:
         queue.insert(0, [num, 2])
     else:
         queue.insert(0, [0, 1])
-    signalstrength = signalstrength + processqueue("%")
 
+signalstrength = 0
 while len(queue) > 0:
     signalstrength = signalstrength + processqueue(">")
 
+del(picture[-1])
 print("Part 1:", signalstrength)
 
-print("Part 2:", signalstrength)
+LETTERS={
+'P': """\
+###.
+#  #
+#  #
+###.
+#  .
+#   """,
+'L': """\
+#  .
+#  .
+#  .
+#  .
+#  .
+####""",
+'G': """\
+ ##.
+#  #
+#  .
+# ##
+#  #
+ ###""",
+'F': """\
+####
+#  .
+###.
+#  .
+#  .
+#  .""",
+'K': """\
+#  #
+# #.
+## .
+# #.
+# #.
+#  #""",
+
+'A': """\
+ ##.
+#  #
+#  #
+####
+#  #
+#  #""",
+'Z': """\
+####
+   #
+  #.
+ # .
+#  .
+####"""
+}
+
+import numpy
+pic = numpy.array(picture)
+r=numpy.rot90(pic, -1)
+o=r.reshape(8,5,6)
+letters = dict()
+for l, raster in LETTERS.items():
+    s = list()
+    for y, row in enumerate(raster.splitlines()):
+        for x, c in enumerate(row):
+            if c == "#": s.append( (y, x) )
+    letters[tuple(sorted(s))] = l
+
+print("Part 2: ", end="")
+for i in numpy.rot90(o, axes=(1, 2)):
+    s = list()
+    i = i[:,0:4]
+    for y, row in enumerate(i):
+        for x, n in enumerate(row):
+            if n == 1: s.append( (y, x) )
+    print(letters[tuple(sorted(s))], end="")
+print("")
+
+
+
+#print(pic[:, 0:5])
 
