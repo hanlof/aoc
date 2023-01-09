@@ -192,29 +192,6 @@ for i in [v.name for v in s.valves.values() if v.rate == 0 and v.name != "AA"]:
     s.removevalve(i)
 
 s.makedot("play/a.dot", "AA")
-
-cachedres = dict()
-
-def recurse3(vname, system, minutes, visitednodes):
-    if minutes <= 0: return 0
-    curvault = system.valves[vname]
-    if curvault.rate > 0: minutes = minutes - 1
-    paths = dict(system.shortestpaths(vname))
-    visitednodes.append(vname)
-    for visited in visitednodes:
-        del(paths[visited])
-    cachekey = tuple(visitednodes) + (vname, minutes,)
-    if cachekey in cachedres:
-        return cachedres[cachekey]
-    ans = 0
-    bestchoice = []
-    for v in paths.items():
-        r = recurse3(v[0], system, minutes - v[1], list(visitednodes))
-        if r > ans:
-            ans = r
-    cachedres[cachekey] = ans
-    return ans + curvault.rate * (minutes)
-
 cachedres4 = dict()
 def recurse4(queue, system, minutes, visitednodes):
     # first find what name/minute pair to work with
@@ -264,58 +241,83 @@ def recurse4(queue, system, minutes, visitednodes):
         cachedres4[cachekey] = highestscore
     return highestscore + curvault.rate * (minutes)
 
-# 2052 is correct! took over 1 hour to calculate though
-# 1160 too low
-# 2019 too low
-
-#import cProfile, pstats, io
-#from pstats import SortKey
-#pr = cProfile.Profile()
-#pr.enable()
-
-#s = System(easyinput.split("\n"))
-print("Part 1:", recurse3("AA", s, 30, []))
+cres = None
 cachedres = dict()
-recurse3("AA", s, 26, [])
-kalle = [l for l in cachedres.keys() if len(l) == 4]
-for a, b in itertools.product(kalle, kalle):
-    print(a, "##########", b, cachedres[a] + cachedres[b])
+def recurse3(vname, system, minutes, visitednodes, accumulatedvalue):
+    if minutes <= 0:
+        if minutes == 0:
+            cachedres[tuple(visitednodes) + (vname, minutes,)] = (accumulatedvalue, 0)
+        return 0
+    curvalve = system.valves[vname]
+    if curvalve.rate > 0: minutes = minutes - 1
+    paths = dict(system.shortestpaths(vname))
+    visitednodes.append(vname)
+    for visited in visitednodes:
+        del(paths[visited])
+    cachekey = tuple(visitednodes) + (minutes,)
+    if cachekey in cachedres:
+        return cachedres[cachekey][0]
+    ans = 0
+    for valve, mins in paths.items():
+        if minutes - mins <= 0: continue
+        r = recurse3(valve, system, minutes - mins, list(visitednodes), accumulatedvalue + curvalve.rate * minutes)
+        if r > ans:
+            ans = r
+    cachedres[cachekey] = (ans, accumulatedvalue + curvalve.rate * minutes)
+    return ans + curvalve.rate * minutes
+
+cachedres = dict()
+print("Part 1:", recurse3("AA", s, 30, [], 0))
+cr1 = cachedres
+
+# Part 2 is solved by looking at pairs of cached results that has fully
+# disjoint paths because iterating the combinations of two moving 'players'
+# takes hours (with my implementation at least
+cachedres = dict()
+recurse3("AA", s, 26, [], 0)
+#print("Cached results:", len(cachedres))
+
+# Use enumerated valves as keys in the next part saves about a second (~15%) runtime
+enumeratedvalves = dict()
+for n, vname in enumerate(s.valves):
+    enumeratedvalves[vname] = n
+
+culled = dict()
+for a, b in [(a[1:-1], b[1]) for a, b in cachedres.items() if a[-1] >= 0 and b[1] > 0]:
+    key = tuple(set([enumeratedvalves[v] for v in a]))
+    if key in culled:
+        if b > culled[key]:
+            culled[key] = b
+    else:
+        culled[key] = b
+#print("Useful subset:", len(culled))
+
+print("computing...", end="")
+bestdisjoint = 0
+for key1, val1 in culled.items():
+    for key2, val2 in culled.items():
+        if val1 + val2 > bestdisjoint:
+            if set(key1).isdisjoint(set(key2)):
+                bestdisjoint =  val1 + val2
+print("Part 2:", bestdisjoint)
+
+
+sys.exit(0)
+for n, c1 in enumerate(sortedlist):
+    for c2 in sortedlist:
+        v = c1[1] + c2[1]
+        if v <= avalue: continue
+        if set(c1[0]).isdisjoint(set(c2[0])):
+            avalue = v
+            disjlist.append( (c1, c2) )
+    if (n % 1000) == 0: print(n, avalue, len(disjlist))
+
+sys.exit()
+#for a, b in itertools.product(kalle, kalle):
+    #print(a, "##########", b, cachedres[a] + cachedres[b])
 
 assert False, "Intentional exit, part 2 result is 2052 after hours of processing with recurse4"
 print("Part 2:", recurse4([("AA", 26), ("AA", 26)], s, 26, []))
-
-#pr.disable()
-#s = io.StringIO()
-#sortby = SortKey.CUMULATIVE
-#ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-#ps.print_stats()
-#print(s.getvalue())
-sys.exit(0)
-
-# 1584 is correct! computed with recurse2 but takes several minutes >_< :D
-# 1589 too high
-# 1550 is wrong
-# 1509 is wrong
-# 1485 is wrong
-# 1484 too low
-
-#['AA', 'UW', 'TQ', 'EG', 'KR', 'VW', 'FX', 'EK']
-# UW - 4 (26 * 6),
-# TQ - 3 (23 * 14),
-# EG - 4 (19 * 23),
-# KR - 3 (16 * 18),
-# VW - 6 (10 * 13),
-# FX - 3 (7  * 20),
-# EK - 4 (3  * 12),
-
-"""
-You open valve DD 20
-You open valve BB 13
-You open valve JJ 21
-You open valve HH 22
-You open valve EE 3
-You open valve CC 2
-"""
 
 """
 V<AA 0 ([T<AA->DD 1>, T<AA->II 1>, T<AA->BB 1>])>
