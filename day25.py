@@ -1,75 +1,38 @@
 import operator
 import itertools
+import aoc
 
-trans={"2": 2, "1": 1, "0": 0, "-": -1, "=": -2}
-def sn2int(sn):
-    return sum(map(operator.mul, map(lambda n: trans[n], reversed(sn)), map(operator.pow, itertools.repeat(5), itertools.count(0))))
+symbol_to_value = {"2": 2, "1": 1, "0": 0, "-": -1, "=": -2}
+value_to_symbol = {v: k for k, v in symbol_to_value.items()}
 
+# if this looks scary then please consider it could have been written as
+# one line without descriptive names for the different parts O:-)
+powers_of_five_sequence = lambda: map(operator.pow, itertools.repeat(5), itertools.count(0))
+symbol_values = lambda s: map(symbol_to_value.get, reversed(s))
+digits_actual_values = lambda s: map(operator.mul, symbol_values(s), powers_of_five_sequence())
+snafu2int = lambda s: sum(digits_actual_values(s))
+p1sum = sum(aoc.getinput(conv=snafu2int))
 
-d = { "1=-0-2":      1747,
-        "12111":     906,
-        "2=0=":      198,
-        "21":        11,
-        "2=01":      201,
-        "111":       31,
-        "20012":     1257,
-        "112":       32,
-        "1=-1=":     353,
-        "1-12":      107,
-        "12":        7,
-        "1=":        3,
-        "122":       37,
-        "22":       12,
-        "1--":       19}
+def getpow(n):
+    for i in itertools.count(0):
+        val = (5 ** i)
+        halfcur = val // 2
+        upper = (val * 2 + halfcur)
+        lower = (val * -2 - halfcur)
+        if lower <= (n) <= upper:
+            return i
 
-for k, v in d.items():
-    print(sn2int(k), "\t", k, "\t", (sn2int(k) % 5), sn2int(k) == v)
-# 33448434171005
-# 302875106592253
-print("---")
-_sum = 0
-for i in open("inputdata/input25").readlines():
-    #print(sn2int(i[:-1]))
-    _sum = _sum + sn2int(i[:-1])
+answer = ""
+tmp = p1sum
+for i in range(getpow(tmp), -1, -1):
+    curvalue = (5 ** (i))
+    halfcur = curvalue // 2
+    upper = (curvalue * 2 + halfcur)
+    lower = (curvalue * -2 - halfcur)
+    output = (tmp - lower) // curvalue
+    output -= 2
+    answer += value_to_symbol[output]
+    tmp -= (output * curvalue)
 
-print(_sum)
-
-import itertools as I2
-import itertools as I3
-I=itertools
-s = _sum
-accumulated = 0
-answer = list()
-while accumulated != s:
-    for i in I.count(0):
-        curvalue = (5 ** i)
-        halfcur = curvalue // 2
-        upper = accumulated + (curvalue * 2 + halfcur)
-        lower = accumulated + (curvalue * -2 - halfcur)
-        #print(i, curvalue, (s), lower, upper)
-        if lower <= (s) <= upper:
-            print("  ", i, "s:", s, "within", lower, lower + curvalue, 0, upper - curvalue, upper)
-            output = (s - lower) // ((upper - lower) // 5)
-            output -= 2
-            accumulated += (output * curvalue)
-            answer.append(output)
-            print("  outputting:", output, "worth ", curvalue * output)
-            break
-    # s -= (output * curvalue)
-
-print(answer)
-
-trans2={2: "2", 1: "1", 0: "0", -1: "-", -2: "="}
-st = ""
-for i in answer:
-    print(trans2[i], end="")
-    st = st + trans2[i]
-print("")
-print(sn2int("1-20--11-00--122-=1"))
-print("----")
-print(st, sn2int(st))
-
-print(s)
-
-print(sn2int("2---1010-0=1220-=010"))
-# 2---1010-0=1220-=010 is correct!@! (current solution not outputing zeroes....)
+print("Part 1:", answer)
+print("Part 2:", "*** 49/49 (100%) gold stars collected ***")
