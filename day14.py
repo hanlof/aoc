@@ -1,109 +1,95 @@
 import sys
 import re
+import aoc
+import itertools
 
-print(__file__)
-
-#inputfile = sys.stdin
-inputfile = open("inputdata/input14")
-allinput = inputfile.readlines()
-
-# 64 x 41
-
-minx = 1000
-maxx = 0
 maxy = 0
-rocks = []
-for i in allinput:
-    a=re.findall("(\d+),(\d+)", i)
-    l = map(lambda l: map(int, l), a)
-    it = iter(l)
-    (px, py) = next(it)
-    for (x, y) in it:
-        if x > maxx: maxx = x
-        if x < minx: minx = x
-        if y > maxy: maxy = y
-        rocks.append( ((px, x), (py, y)) )
-        px = x
-        py = y
+mapset = set()
+for i in aoc.getinput():
+    a=[(int(x), int(y)) for x, y in re.findall("(\d+),(\d+)", i)]
+    maxy = max(a + [(0, maxy)], key=lambda a: a[1])[1]
+    for (x1, y1), (x2, y2) in itertools.pairwise(a):
+        for x in range(min(x1, x2), max(x1, x2) + 1):
+            for y in range(min(y1, y2), max(y1, y2) + 1):
+                mapset.add( (x, y) )
 
-# Part 2 needs a lot of space
-minx = minx - 2
-maxx = maxx + 2
-minx = 500 - 177
-maxx = 500 + 177
-maxy = maxy
-mapx = [ [" "] * (maxx - minx + 1) for i in range(maxy + 3)]
-#for ( (x1, y1), (x2, y2) ) in rocks:
-#    print(x1,y1,x2,y2)
-#
-def printmap(m):
-    for i in m:
-        print("|", end="")
-        for j in i:
-            print(j, end="")
-        print()
+wallset = set(mapset)
+fastset = set()
+def printmap():
+    minx = min(fastset, key=lambda x: x[0])[0]
+    maxx = max(fastset, key=lambda x: x[0])[0]
+    miny = min(fastset, key=lambda x: x[1])[1]
+    #maxy = max(fastset, key=lambda x: x[1])[1]
+    for y in range(miny, maxy + 1):
+        for x in range(minx - 1, maxx + 2):
+            if (x, y) in fastset: print(".", end="")
+            elif (x, y) in wallset: print("#", end="")
+            elif (x, y) in mapset: print("o", end="")
+            else: print(" ", end="")
+        print("")
 
-for ( (x1, x2), (y1, y2) ) in rocks:
-    if x1 > x2: t = x2; x2 = x1; x1 = t
-    if y1 > y2: t = y2; y2 = y1; y1 = t
-    if x1 == x2: points = ( [(x1, y) for y in range(y1, y2 + 1) ] )
-    if y1 == y2: points = ( [(x, y1) for x in range(x1, x2 + 1) ] )
-    for x, y in points:
-        mapx[y][x - minx] = '#'
-
-mapx[0][500 - minx] = '+'
-
-for i in range(len(mapx[-1])):
-    mapx[-1][i] = "#"
-
-printmap(mapx)
-free = lambda x, y: mapx[y][x] == ' '
-busy = lambda x, y: mapx[y][x] != ' '
-
-# start flowing sand
+# Part 1: flow sand until one sand falls below lowest wall block
 count = 0
 done = 0
 while not done:
-    sx = 500 - minx
+    sx = 500
     sy = 0
     while True:
         sy = sy + 1
         if sy > maxy:
             done = 1
             break
-        if busy(sx, sy):
-            #            print(maxx, sx)
-            if busy(sx - 1, sy) and busy(sx + 1, sy):
-                mapx[sy - 1][sx] = 'o'
+        if (sx, sy) in mapset:
+            if (sx - 1, sy) in mapset and (sx + 1, sy) in mapset:
+                mapset.add( (sx, sy - 1) )
                 count = count + 1
                 break
-            elif free(sx - 1, sy):
+            elif not (sx - 1, sy) in mapset:
                 sx = sx - 1
-            elif free(sx + 1, sy):
+            elif not (sx + 1, sy) in mapset:
                 sx = sx + 1
+print("Part 1:", count)
 
-p1count = count
-# Part 2
-done = 0
-while not done:
-    sx = 500 - minx
-    sy = 0
-    while True:
-        sy = sy + 1
-        if busy(sx, sy):
-            if busy(sx - 1, sy) and busy(sx + 1, sy):
-                mapx[sy - 1][sx] = 'o'
-                count = count + 1
-                if sy == 1:
-                    done = 1
-                break
-            elif free(sx - 1, sy):
-                sx = sx - 1
-            elif free(sx + 1, sy):
-                sx = sx + 1
+# Part 2. Calculate sand spread by letting each line (starting from the top)
+# contain sand wherever the previous line has sand AND in the squares to the
+# left and right of each of those coordinates except wherever there are walls.
+# It works beautifully and runs way faster than placing each sand block!
+sandsquares = { 500 }
+ylevel = 0
+while ylevel < (maxy + 2):
+    fastset |= set( [(x, ylevel) for x in sandsquares] )
+    for x in list(sandsquares):
+        sandsquares |= { x - 1, x, x + 1 }
+    ylevel += 1
+    wallbricks = set([i for i in range(min(sandsquares), max(sandsquares) + 1) if (i, ylevel) in wallset])
+    sandsquares -= wallbricks
+print("Part 2:", len(fastset))
 
-#printmap(mapx)
-print("Part 1:", p1count)
-print("Part 2:", count)
-print(minx, maxx, maxy)
-print(500-175, 500+175, maxy)
+# slow solution. moves each sand block one step at a time as in the AoC description
+# kept for comparison and nostalgia :-)
+mapset = set(wallset)
+def slowpart2():
+    count = 0
+    with aoc.Spinner():
+        # Part 2
+        done = 0
+        while not done:
+            sx = 500
+            sy = 0
+            while True:
+                sy = sy + 1
+                if sy == (maxy + 3):
+                    mapset.add( (sx, sy - 1) )
+                    break
+                if (sx, sy) in mapset:
+                    if (sx - 1, sy) in mapset and (sx + 1, sy) in mapset:
+                        mapset.add( (sx, sy - 1) )
+                        count = count + 1
+                        if sy == 1:
+                            done = 1
+                        break
+                    elif not (sx - 1, sy) in mapset:
+                        sx = sx - 1
+                    elif not (sx + 1, sy) in mapset:
+                        sx = sx + 1
+    print("Slow Part 2:", count)
