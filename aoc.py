@@ -3,22 +3,51 @@ import re
 import inspect
 import itertools
 import time
+import threading
 
 verbose = 1
 
 class Timing():
-    def __init__(s, label=None, precision=2):
+    def __init__(s, label="Timing:", lineprefix=" ", precision=2):
         s.timestamps = list()
         s.add(label)
         s.precision = precision
+        s.lineprefix = lineprefix
     def add(s, label=None):
         s.timestamps.append( (label, time.time() ) )
     def print(s):
         if s.timestamps[0][0] is not None:
             print(s.timestamps[0][0])
         for t1, t2 in itertools.pairwise(s.timestamps):
-            print(t2[0], ":", round(t2[1] - t1[1], s.precision),
+            print(s.lineprefix, t2[0], ":", round(t2[1] - t1[1], s.precision),
                     round(t2[1] - s.timestamps[0][1], s.precision))
+
+class Spinner():
+    CURSORLEFT = "\x1b[D"
+    def __init__(s, delay=0.1):
+        s.e = threading.Event()
+        s.t = None
+        s.delay=delay
+    def __enter__(s):
+        s.start()
+    def __exit__(s, *a):
+        s.stop()
+    def start(s):
+        s.t = threading.Thread(target=s.spinner)
+        s.e.clear()
+        s.t.start()
+    def spinner(s):
+        states = itertools.cycle((list("/-\\|")))
+        print(next(states), end="", flush=True)
+        for c in states:
+            time.sleep(s.delay)
+            print(s.CURSORLEFT, c, sep="", end="", flush=True)
+            if (s.e.is_set()):
+                print(s.CURSORLEFT, end="", flush=True)
+                break
+    def stop(s):
+        s.e.set()
+        s.t.join()
 
 def firstcallerstackframe():
     callstack = inspect.stack()
