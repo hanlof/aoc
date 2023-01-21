@@ -112,6 +112,12 @@ def htmlcodesections(day=None):
     a = re.findall("<pre><code>(.*)?</code></pre>", s, flags=re.MULTILINE | re.DOTALL)
     return [s.splitlines() for s in a]
 
+def htmlcodeemsections(day=None):
+    c = metadata()
+    s = open(c['htmlfname']).read()
+    a = re.findall("<code><em>(.*?)</em></code>", s, flags=re.MULTILINE | re.DOTALL)
+    return [s for s in a]
+
 def htmlanswers(day=None):
     c = metadata(day)
     s = open(c['htmlfname']).read()
