@@ -1,47 +1,40 @@
-import sys
-import re
-import os
+import re, os
+import aoc
 
-print(__file__)
+class Directory():
+    def __init__(s):
+        s.this = 0
+        s.tot = 0
 
-#inputfile = sys.stdin
-allinput = open("inputdata/input07").read().splitlines()
-
-dirsizes = {}
-path = "/"
+allinput = aoc.getinput()
+dirsizes = dict()
+curpath = "/"
 for i in allinput:
     r = re.search("\$ cd (.*)", i)
     if r:
         d = r[1]
         if d == "/":
-            path = "/"
+            curpath = "/"
         else:
-            path = os.path.realpath(path + "/" + d)
-        print(path)
-        if not path in dirsizes:
-            dirsizes[path] = {'d': 0, 'i': 0}
+            curpath = os.path.realpath(curpath + "/" + d)
+        if not curpath in dirsizes:
+            dirsizes[curpath] = Directory()
     r = re.match("(\d+).*", i)
     if r:
-        dirsizes[path]['d'] += int(r[1])
-        dirsizes[path]['i'] += int(r[1])
-        tmpdir = path
+        dirsizes[curpath].this += int(r[1])
+        dirsizes[curpath].tot += int(r[1])
+        tmpdir = curpath
         while tmpdir != "/":
             tmpdir = os.path.realpath(tmpdir + "/..")
-            dirsizes[tmpdir]['i'] += int(r[1])
-        print(path, dirsizes[path])
+            dirsizes[tmpdir].tot += int(r[1])
 
+# P1: sum of all directories smaller than 100000
+print("Part 1:", sum([d.tot for d in dirsizes.values() if d.tot < 100000]))
 
-print(dirsizes)
-
-print(sum([i[1]['d'] for i in dirsizes.items() if i[1]['d'] <= 100000]))
-print("Part 1:", sum([i[1]['i'] for i in dirsizes.items() if i[1]['i'] <= 100000]))
-
-print("--------------")
-print(sorted(dirsizes.items(), key=lambda a: a[1]['i'])) # print(a[1]['i']))) # a[1]['i']))
-
-free = 70000000 - dirsizes["/"]['i']
-print("Free:", free)
-print("Need:", 30000000-free)
-#print([i for i in dirsizes.items() if i[1]['d'] <= 100000])
-
-# 11327531 too high (part 2)
+# P2: smallest directory that would free up enough space
+# DISKSIZE and NEEDSIZE are always just 70000000 and 30000000 but it's kinda cuter to fetch these from html
+DISKSIZE = int(aoc.htmlcodeemsections()[1])
+NEEDSIZE = int(aoc.htmlcodeemsections()[2])
+free = DISKSIZE - dirsizes["/"].tot
+mindir = min(filter(lambda d: d.tot > (NEEDSIZE - free), dirsizes.values()), key=lambda d: d.tot)
+print("Part 2:", mindir.tot)
