@@ -4,6 +4,7 @@ import itertools
 import re
 import time
 import multiprocessing
+import aoc
 
 # Not enough minerals....
 
@@ -55,15 +56,11 @@ def haspotential(minutes, georobots, geodes, highest):
     return False
 
 def minutestogeo(cost, rob, obsi):
-     robiter = itertools.count(rob)
-     totobsi = itertools.accumulate(robiter, initial=obsi)
+     totobsi = itertools.accumulate(itertools.count(rob), initial=obsi)
      acclist = itertools.takewhile(lambda o: o < cost, totobsi)
      count = 0
      sum([1 for _ in acclist])
      return count
-
-#In [156]: 17 * 31 * 40
-
 
 def recurse(minutesleft, robots, resources, skipped, globalstate):
     # first make a choice and spend
@@ -85,12 +82,11 @@ def recurse(minutesleft, robots, resources, skipped, globalstate):
         return globalstate["cachedres"][cachekey]
     # using minutestogeo loses time. too much computing for the saving
     #mintogeo = -1 - minutestogeo(costs[GEO][OBSI], robots[OBSI], resources[OBSI])
-    #potgeo = potentialgeodes(minutesleft, robots[GEO], resources[GEO], bestresult)
+    #if robots[GEO] == 0: mintogeo = 1
+
     if not haspotential(minutesleft, robots[GEO], resources[GEO], globalstate["bestresult"]):
         globalstate["cachedres"][cachekey] = 0
-        #coveredsearchspace += 5 ** minutesleft
         return 0
-
     choices = set()
     for i in range(5):
         canbuy = True
@@ -99,6 +95,10 @@ def recurse(minutesleft, robots, resources, skipped, globalstate):
                 canbuy = False
                 break
         if canbuy: choices.add(i)
+    if not GEO in choices and robots[GEO] == 0:
+        if not haspotential(minutesleft - 1, robots[GEO], resources[GEO], globalstate["bestresult"]):
+            globalstate["cachedres"][cachekey] = 0
+            return 0
     #if not GEO in choices and not GEO in robots and not haspotential(minutesleft - 1, 0, 0, bestresult): return 0
     if resources[CLAY] >= globalstate["possiblespendingcache"][minutesleft][CLAY]:
         choices -= {CLAY}
@@ -106,7 +106,7 @@ def recurse(minutesleft, robots, resources, skipped, globalstate):
         choices -= {ORE}
     if resources[OBSI] >= globalstate["possiblespendingcache"][minutesleft][OBSI]:
         choices -= {OBSI}
-    if choices.issuperset({ORE,CLAY,OBSI,GEO}):
+    if choices.issuperset({ORE, CLAY, OBSI, GEO}):
         choices -= {NONE}
 
     # Big optimization. Can't do the same for ORE or OBSI unfortunately
@@ -200,24 +200,22 @@ if __name__ == "__main_":
     print("Part 1:", sum([k * v for k, v in totalgeodes.items()]))
 
     # part 2 runs up to 32nd minute but only for BP 1, 2 and 3
-    print(CURSORLEFT, "Part 2: ? %d/%d" % (0, 3), sep="", end="", flush=True)
     geo =  runbp(1, 32)
-    print(CURSORLEFT, "Part 2: ? %d/%d" % (1, 3), sep="", end="", flush=True)
     geo *= runbp(2, 32)
-    print(CURSORLEFT, "Part 2: ? %d/%d" % (2, 3), sep="", end="", flush=True)
     geo *= runbp(3, 32)
-    print(CURSORLEFT, "                  ", CURSORLEFT, sep="", end="", flush=True)
     print("Part 2:", geo)
 
 # threading does not save time, but multiprocessing do!
 def runbpwrapper( tup ):
     return runbp( tup[0], tup[1] )
 
-print([(1, 32), (2, 32), (3, 32)] + [(i + 1, 24) for i in range(30)])
-with multiprocessing.Pool(8) as p:
-    res = p.map(runbpwrapper, [(1, 32), (2, 32), (3, 32)] + [(i + 1, 24) for i in range(30)])
+t=aoc.Timing("Times")
+with aoc.Spinner():
+    with multiprocessing.Pool(8) as p:
+        res = p.map(runbpwrapper, [(1, 32), (2, 32), (3, 32)] + [(i + 1, 24) for i in range(30)])
+t.add("Done")
+t.print()
 
-print(res[3:])
 print("Multi part1:", sum(itertools.starmap(operator.mul, [(n + 1, k) for n, k in enumerate(res[3:])])))
 print("Multi part2:", res[0] * res[1] * res[2])
 
