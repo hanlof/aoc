@@ -1,49 +1,7 @@
 import sys
 import re
+import aoc
 
-print(__file__)
-
-#inputfile = sys.stdin
-inputfile = open("inputdata/input12")
-allinput = inputfile.readlines()
-
-# 64 x 41
-map = []
-nodemap = []
-for i in allinput:
-#    print(len(i), i)
-    map.append(list(i[0:64]))
-    nodemap.append([None] * 64)
-
-for y in range(len(map)):
-    for x in range(len(map[y])):
-        cur = ord(map[y][x])
-        marker = ' '
-        if y > 0:
-            if ord(map[y - 1][x]) == (cur + 1):
-                marker = '|'
-            elif ord(map[y - 1][x]) == (cur - 1):
-                marker = '|'
-            elif ord(map[y - 1][x]) == (cur):
-                marker = '|'
-            print(marker, end="")
-        print(' ', end="")
-    print("")
-    for x in range(len(map[y])):
-        cur = ord(map[y][x])
-        marker = ' '
-        if x > 0:
-            if ord(map[y][x - 1]) == (cur + 1):
-                marker = '-'
-            elif ord(map[y][x - 1]) == (cur - 1):
-                marker = '-'
-            elif ord(map[y][x - 1]) == (cur):
-                marker = '-'
-            print(marker, end="")
-        print(map[y][x], end="")
-    print("")
-
-# Prepare dijkstras...
 class Node():
     visited = False
     distance = None
@@ -51,70 +9,61 @@ class Node():
     x = None
     y = None
     elevation = None
-    def __init__(self, x, y, ele):
+    def __init__(self, x, y, elevationsign):
         self.x = x
         self.y = y
+        if elevationsign == 'S': ele = 0
+        elif elevationsign == 'E': ele = ord('z') - ord('a')
+        else: ele = ord(elevationsign) - ord('a')
         self.elevation = ele
         self.reachable_nodes = list()
+        self.reachable_from = list()
     def __repr__(self):
-        return "%s%-3d" % ( chr(self.elevation or "-"), self.distance or -1)
+        return "%s%-3d" % ( chr(self.elevation or "-"), self.distance or -2)
     def __str__(self):
-        #return "N%d/%d" % (self.x, self.y)
-        return "%s%-3d" % ( chr(self.elevation or "-"), self.distance or -1)
-        #return "N%c%d" % (chr(self.elevation), len(self.reachable_nodes))
+        return "%s%-3d" % ( chr(self.elevation or "-"), self.distance or -2)
 
-# Create nodes (without connections)
-startnode = None
-endnode = None
-for y in range(len(map)):
-    for x in range(len(map[y])):
-        elc = map[y][x]
-        if elc == 'S':
-            ele = ord('a')
-        elif elc == 'E':
-            ele = ord('z')
-        else:
-            ele = ord(elc)
-        nodemap[y][x] = Node(x, y, ele)
-        if elc == 'S':
-            startnode = nodemap[y][x]
-        elif elc == 'E':
-            endnode = nodemap[y][x]
+def parseandsetup(inputlines):
+    nodedict = dict()
+    # Create nodes (without connections)
+    for y, row in enumerate(inputlines):
+        for x, elesign in enumerate(row):
+            node = Node(x, y, elesign)
+            if elesign == 'S': startnode = node
+            elif elesign == 'E': endnode = node
+            nodedict[(x, y)] = node
+    # Create node connections
+    above = lambda n: nodedict.get((n.x, n.y - 1))
+    below = lambda n: nodedict.get((n.x, n.y + 1))
+    left  = lambda n: nodedict.get((n.x - 1, n.y))
+    right = lambda n: nodedict.get((n.x + 1, n.y))
+    for n in nodedict.values():
+        for neighbour in [above(n), below(n), left(n), right(n)]:
+            if neighbour is None: continue # happens on edge rows. top, bottom, etc
+            if neighbour.elevation <= (n.elevation + 1):
+                n.reachable_nodes.append(neighbour)
+                neighbour.reachable_from.append(n)
+    return nodedict, startnode, endnode
 
-# Create all connections between nodes
-for y in range(len(map)):
-    for x in range(len(map[y])):
-        n = nodemap[y][x]
-        if y > 0:
-            if nodemap[y - 1][x].elevation <= (n.elevation + 1):
-                n.reachable_nodes.append(nodemap[y - 1][x])
-        if y < (len(map) - 1):
-            if nodemap[y + 1][x].elevation <= (n.elevation + 1):
-                n.reachable_nodes.append(nodemap[y + 1][x])
-        if x > 0:
-            if nodemap[y][x - 1].elevation <= (n.elevation + 1):
-                n.reachable_nodes.append(nodemap[y][x - 1])
-        if x < (len(map[0]) - 1):
-            if nodemap[y][x + 1].elevation <= (n.elevation + 1):
-                n.reachable_nodes.append(nodemap[y][x + 1])
+def calculatedistances(nodedict, fromnode):
+    for n in nodedict.values():
+        n.visited = False
+    fromnode.distance = 0
+    fromnode.visited = True
+    nodequeue = [ fromnode ]
+    while len(nodequeue) > 0:
+        curnode = nodequeue.pop()
+        newdist = curnode.distance + 1
+        for n in curnode.reachable_from:
+            if n.visited: continue
+            n.visited = True
+            n.distance = newdist
+            nodequeue.insert(0, n)
 
-startnode.distance = 0
-startnode.visited = True
-nodequeue = [ startnode ]
-count = 0
-while len(nodequeue) > 0:
-    n = nodequeue.pop()
-    for r in n.reachable_nodes:
-        if r.visited: continue
-        r.distance = n.distance + 1
-        nodequeue.insert(0, r)
-        r.visited = True
-    count = count + 1
-    if n is endnode:
-        break
+nodedict, startnode, endnode = parseandsetup(aoc.getinput())
 
-#for i in nodemap:
-#    print(i[10:])
+calculatedistances(nodedict, endnode)
 
-
-print("Part 1:", endnode.distance)
+print("Part 1:", startnode.distance)
+part2filter = lambda n: n.elevation == 0 and n.distance is not None
+print("Part 2:", min([n.distance for n in nodedict.values() if part2filter(n)]))
