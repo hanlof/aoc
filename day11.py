@@ -1,17 +1,6 @@
 import re
 import operator
-
-inputfile = open("inputdata/input11")
-allinput = inputfile.readlines()
-
-class Item():
-    level = 0
-    def __init__(self, level):
-        self.level = level
-    def __repr__(self):
-        return "<Item %d>" % self.level
-
-monkeys = dict()
+import aoc
 
 class Monkey():
     inspectcount = 0
@@ -21,6 +10,8 @@ class Monkey():
     test = 0
     truetarget = 0
     falsetarget = 0
+    mttarget = None
+    mftarget = None
     def __init__(self, str):
         r = re.match("""
 ?^Monkey (?P<index>\d+):$
@@ -31,15 +22,16 @@ class Monkey():
     If false: throw to monkey (?P<false>.*)$""", str, flags=re.MULTILINE)
         self.index = int(r.group('index'))
         l = eval("[" + r.group('items') + "]")
-        self.items = list(map(Item, l))
-        self.op = r.group('operation')
+        self.items = [int(i) for i in l]
         ops = r.group('operation').split(" ")
         if ops[2] == "old" and ops[1] == "*":
-            self.oper = operator.methodcaller("__pow__", 2)
+            self.oper = lambda x: (x * x) % 9699690 # prevent number from growing to silly values
         elif ops[1] == "*":
-            self.oper = operator.methodcaller("__mul__", int(ops[2]))
+            self.operarg = int(ops[2])
+            self.oper = lambda x: x * self.operarg
         elif ops[1] == "+":
-            self.oper = operator.methodcaller("__add__", int(ops[2]))
+            self.operarg = int(ops[2])
+            self.oper = lambda x: x + self.operarg
         self.test = int(r.group('test'))
         self.truetarget = int(r.group('true'))
         self.falsetarget = int(r.group('false'))
@@ -50,28 +42,30 @@ class Monkey():
     def inspectall(self, divisor):
         while len(self.items) != 0:
             item = self.items.pop(0)
-            item.level = self.oper(item.level)
-            item.level = item.level // divisor
-            item.level = item.level % 9699690 # 2*3*5*7*11*13*17*19 (keeping number small for round 2)
-            if (item.level % self.test) == 0:
-                monkeys[self.truetarget].items.append(item)
-            else:
-                monkeys[self.falsetarget].items.append(item)
+            item = self.oper(item)
+            item = item // divisor
+            target = self.mttarget if (item % self.test) == 0 \
+                    else self.mftarget
+            target.append(item)
             self.inspectcount += 1
+    def inspectall2(self):
+        for it in self.items:
+            item = self.oper(it)
+            if (item % self.test) == 0:
+                self.mttarget.append(item)
+            else:
+                self.mftarget.append(item)
+            self.inspectcount += 1
+        self.items.clear() # XXX can't do self.items = [] because items is referenced in other monkeys
 
-a = "".join(allinput)
-r = re.findall("""
-?(^Monkey (\d+):$
-  Starting items: (?P<items>((\d+)(, )?)+).*$
-  Operation.*$
-  Test: .*$
-    If.*$
-    If.*$)+""", a, flags=re.MULTILINE)
-if r:
-    for m in r:
-        monkeys[int(m[1])] = Monkey(m[0])
-else:
-    print("Bad input")
+monkeys = dict()
+
+for n, s in enumerate(aoc.sections(aoc.getinput())):
+    monkeys[n] = Monkey("\n".join(s))
+
+for n, m in monkeys.items():
+    m.mftarget = monkeys[m.falsetarget].items
+    m.mttarget = monkeys[m.truetarget].items
 
 for i in range(20):
     for (index, monkey) in monkeys.items():
@@ -82,26 +76,18 @@ toplist = sorted(monkeys.values(), key=lambda m: (m.inspectcount), reverse=True)
 print("Part 1:", toplist[0].inspectcount * toplist[1].inspectcount)
 
 # reset all for round 2
-a = "".join(allinput)
-r = re.findall("""
-?(^Monkey (\d+):$
-  Starting items: (?P<items>((\d+)(, )?)+).*$
-  Operation.*$
-  Test: .*$
-    If.*$
-    If.*$)+""", a, flags=re.MULTILINE)
-if r:
-    for m in r:
-        monkeys[int(m[1])] = Monkey(m[0])
-else:
-    print("Bad input")
+for n, s in enumerate(aoc.sections(aoc.getinput())):
+    monkeys[n] = Monkey("\n".join(s))
+
+for n, m in monkeys.items():
+    m.mftarget = monkeys[m.falsetarget].items
+    m.mttarget = monkeys[m.truetarget].items
 
 for i in range(10000):
-    for (index, monkey) in monkeys.items():
-        monkey.inspectall(1)
+    for monkey in monkeys.values():
+        monkey.inspectall2()
 
 toplist = sorted(monkeys.values(), key=operator.attrgetter("inspectcount"), reverse=True)
 
 print("Part 2:", toplist[0].inspectcount * toplist[1].inspectcount)
-
 
