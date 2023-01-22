@@ -3,6 +3,7 @@ import re
 import copy
 import itertools
 import sys
+import aoc
 
 class Tunnel():
     def __init__(s, length):
@@ -45,13 +46,13 @@ class Valve():
 inputfile = open("inputdata/input16")
 allinput = inputfile.readlines()
 
-count = 1
 level = 0
 class System():
     def __init__(self, inputstr):
         self.valves = dict()
         self.tunnels = dict()
         self.cacheddistances = dict()
+        self.valvesbynum = list()
         for inputline in inputstr:
             # parse text input
             r = re.match("Valve (\w\w).*rate=(\d+).*valves? (((, )?(\w\w))+)", inputline)
@@ -138,6 +139,35 @@ class System():
                     else:
                         dotfile.write("%s -> %s [label=\"%s\"];\n" % (i.name, j.dst.name, str(j.length)))
             dotfile.write("}\n")
+
+    def shortestpathsbynum(self, v1num):
+        if v1name in self.cacheddistances:
+            return self.cacheddistances[v1name]
+        v1 = self.valves[v1name]
+        visited = dict({v1.name: 0})
+        queue = list(v1.tunnels)
+        while len(queue) > 0:
+            tun = queue[0]
+            shortest = visited[tun.src.name] + tun.length
+            shortestidx = 0
+            for i in range(len(queue)):
+                candidate = queue[i]
+                candlen = visited[candidate.src.name] + candidate.length
+                if candlen < shortest:
+                    shortest = candlen
+                    shortestidx = i
+            tun = queue.pop(shortestidx)
+
+            newlen = visited[tun.src.name] + tun.length
+            if not tun.dst.name in visited:
+                queue.extend(tun.dst.tunnels)
+            if tun.dst.name in visited:
+                if visited[tun.dst.name] > newlen:
+                    visited[tun.dst.name] = newlen
+            else:
+                visited[tun.dst.name] = newlen
+        self.cacheddistances[v1name] = visited
+        return visited
 
     def shortestpaths(self, v1name):
         if v1name in self.cacheddistances:
@@ -241,6 +271,9 @@ def recurse4(queue, system, minutes, visitednodes):
         cachedres4[cachekey] = highestscore
     return highestscore + curvault.rate * (minutes)
 
+enumeratedvalves = dict()
+for n, vname in enumerate(s.valves):
+    enumeratedvalves[vname] = n
 cres = None
 cachedres = dict()
 def recurse3(vname, system, minutes, visitednodes, accumulatedvalue):
@@ -259,65 +292,55 @@ def recurse3(vname, system, minutes, visitednodes, accumulatedvalue):
         return cachedres[cachekey][0]
     ans = 0
     for valve, mins in paths.items():
-        if minutes - mins <= 0: continue
+        if minutes - mins <= 0:
+            continue
         r = recurse3(valve, system, minutes - mins, list(visitednodes), accumulatedvalue + curvalve.rate * minutes)
         if r > ans:
             ans = r
+    if ans == 0:
+        cachedres[tuple(visitednodes) + (0,)] = (ans, accumulatedvalue + curvalve.rate * minutes)
+
     cachedres[cachekey] = (ans, accumulatedvalue + curvalve.rate * minutes)
     return ans + curvalve.rate * minutes
 
 cachedres = dict()
+tim = aoc.Timing("Timing:")
 print("Part 1:", recurse3("AA", s, 30, [], 0))
-cr1 = cachedres
 
-# Part 2 is solved by looking at pairs of cached results that has fully
-# disjoint paths because iterating the combinations of two moving 'players'
-# takes hours (with my implementation at least
+print(len(cachedres))
+tim.add("Part 1")
+# Part 2 is solved by looking at pairs of cached results that has fully disjoint paths,
+# not by checking all combinations, because iterating the combinations of two
+# moving 'players' takes hours (with my implementation at least
 cachedres = dict()
 recurse3("AA", s, 26, [], 0)
-#print("Cached results:", len(cachedres))
+tim.add("Redid cache")
 
-# Use enumerated valves as keys in the next part saves about a second (~15%) runtime
-enumeratedvalves = dict()
-for n, vname in enumerate(s.valves):
-    enumeratedvalves[vname] = n
-
-culled = dict()
-for a, b in [(a[1:-1], b[1]) for a, b in cachedres.items() if a[-1] >= 0 and b[1] > 0]:
-    key = tuple(set([enumeratedvalves[v] for v in a]))
-    if key in culled:
-        if b > culled[key]:
-            culled[key] = b
-    else:
-        culled[key] = b
-#print("Useful subset:", len(culled))
-
-print("computing...", end="")
-bestdisjoint = 0
-for key1, val1 in culled.items():
-    for key2, val2 in culled.items():
-        if val1 + val2 > bestdisjoint:
-            if set(key1).isdisjoint(set(key2)):
-                bestdisjoint =  val1 + val2
-print("Part 2:", bestdisjoint)
+usefulsubset = dict()
+for key, val in [(a[1:-1], b[1]) for a, b in cachedres.items() if a[-1] == 0 and b[1] > 0]:
+    newkey = tuple(set([enumeratedvalves[v] for v in key]))
+    tempval = usefulsubset.get(newkey, 0)
+    usefulsubset[newkey] = max(tempval, val)
 
 
-sys.exit(0)
-for n, c1 in enumerate(sortedlist):
-    for c2 in sortedlist:
-        v = c1[1] + c2[1]
-        if v <= avalue: continue
-        if set(c1[0]).isdisjoint(set(c2[0])):
-            avalue = v
-            disjlist.append( (c1, c2) )
-    if (n % 1000) == 0: print(n, avalue, len(disjlist))
+print("Len", len(usefulsubset))
+tim.add("Culled data set")
+with aoc.Spinner():
+    bestcombo = 0
+    lowestsingle = 0
+    for key1, val1 in usefulsubset.items():
+        if val1 < lowestsingle: continue # this one cuts the time REAL good
+        for key2, val2 in usefulsubset.items():
+            if val1 + val2 > bestcombo:
+                if set(key1).isdisjoint(set(key2)):
+                    lowestsingle = max(lowestsingle, min(val1, val2))
+                    bestcombo = val1 + val2
+print("Part 2:", bestcombo)
+tim.add("Found disjoint combo")
+tim.print()
 
-sys.exit()
-#for a, b in itertools.product(kalle, kalle):
-    #print(a, "##########", b, cachedres[a] + cachedres[b])
+# TODO: identify valves by number in recurse3 and findshortest!
 
-assert False, "Intentional exit, part 2 result is 2052 after hours of processing with recurse4"
-print("Part 2:", recurse4([("AA", 26), ("AA", 26)], s, 26, []))
 
 """
 V<AA 0 ([T<AA->DD 1>, T<AA->II 1>, T<AA->BB 1>])>
@@ -331,143 +354,4 @@ V<DD 20 20 ([T<DD->CC 1>, T<DD->AA 1>, T<DD->EE 1>])>
 V<JJ 21 42 ([T<JJ->II 1>])>
 V<HH 22 110 ([T<HH->GG 1>])>
 """
-def makedot(fname):
-    with open(fname, "w+") as dotfile:
-        dotfile.write("digraph new_graph {\n")
-        for i in valves.values():
-            #if len(i.tunnels) == 0:
-            #    continue
-            dotfile.write("%s [label=\"%s %d\"]\n" % (i.name, i.name, i.rate))
-            for j in i.tunnels:
-                if (type(j) is VTunnel):
-                    dotfile.write("%s -> %s [label=\"%s %s\"];\n" % (i.name, j.dst.name, str(j.length), str(j.rate)))
-                else:
-                    dotfile.write("%s -> %s [label=\"%s\"];\n" % (i.name, j.dst.name, str(j.length)))
-        dotfile.write("}\n")
-for i in allinput:
-    # parse text input
-    r = re.match("Valve (\w\w).*rate=(\d+).*valves? (((, )?(\w\w))+)", i)
-    # make valve object
-    valves[r[1]] = Valve(r[1], r[2])
-    # make tunnel objects
-    for i in re.findall("\w\w", r[3]):
-        tunnels[(r[1], i)] = Tunnel(1)
-
-# Create all the connections
-for (s, d), t in tunnels.items():
-    fromvalve = valves[s]
-    tovalve = valves[d]
-    t.src = fromvalve
-    t.dst = tovalve
-    fromvalve.tunnels.append(t)
-
-makedot("play/day16.dot")
-
-# Remove jumps from rate 0 valves
-startvalve = valves["AA"]
-for i in valves.values():
-    if i.rate == 0 and len(i.tunnels) == 2:
-        # remove this, connect the neighbours
-        v1 = i.tunnels[0].dst
-        v2 = i.tunnels[1].dst
-        t1 = Tunnel(i.tunnels[0].length + i.tunnels[1].length)
-        t2 = Tunnel(i.tunnels[0].length + i.tunnels[1].length)
-        t1.src = v1
-        t1.dst = v2
-        t2.src = v2
-        t2.dst = v1
-        i.tunnels = list()
-        for j in range(len(v1.tunnels)):
-            if v1.tunnels[j].dst is i:
-                v1.tunnels[j] = t1
-        for j in range(len(v2.tunnels)):
-            if v2.tunnels[j].dst is i:
-                v2.tunnels[j] = t2
-
-
-makedot("play/day16-2.dot")
-
-
-def removevalve(name):
-    ht = valves[name]
-    n = [t.dst for t in ht.tunnels]
-    tunpairs = itertools.product(ht.tunnels, ht.tunnels)
-    modified_valves = set()
-    for t1, t2 in tunpairs:
-        if t1 is t2: continue
-        modified_valves.add(t1.dst)
-        modified_valves.add(t2.dst)
-        nt1 = VTunnel(t1.length + t2.length, 0)
-        nt1.src = t1.dst
-        nt1.dst = t2.dst
-        t1.dst.tunnels.append(nt1)
-        nt1 = VTunnel(t1.length + t2.length + 1, ht.rate)
-        nt1.src = t1.dst
-        nt1.dst = t2.dst
-        t1.dst.tunnels.append(nt1)
-        for j in range(len(t1.dst.tunnels)):
-            if t1.dst.tunnels[j].dst is ht:
-                del(t1.dst.tunnels[j])
-                break
-        for j in range(len(t2.dst.tunnels)):
-            if t2.dst.tunnels[j].dst is ht:
-                del(t2.dst.tunnels[j])
-                break
-    del(valves[name])
-
-def checkoptions(v, minutes, visited):
-    print("R", v.name)
-    if minutes <= 0: return 0
-    print(minutes)
-    s = 2 # open valve
-    options = [t.dst for t in v.tunnels]
-    removevalve(v.name)
-    for i in options:
-        print("OOO", i)
-    s = s + sum(map(lambda v2: checkoptions(v2, minutes - t.length - 1, []), options))
-    s = s + sum(map(lambda v2: checkoptions(v2, minutes - t.length, []), options))
-    return s
-
-#for i in s.valves.values():
-#    print(i)
-
-#print("BBB", checkoptions(startvalve, 2, []))
-removevalve("AA")
-makedot("play/day16-x.dot")
-
-#removevalve("WY")
-#removevalve("TG")
-#removevalve("KS")
-#removevalve("FX")
-#removevalve("VW")
-#removevalve("EK")
-#removevalve("AP")
-#removevalve("EG")
-#removevalve("HT")
-#removevalve("FG")
-#removevalve("TQ")
-#removevalve("KR")
-#removevalve("UW")
-
-#for i in valves.values():
-#    if i.rate == 0: continue
-#    print(i.tunnels)
-#    f = filter(lambda t: type(t) is VTunnel, i.tunnels)
-#    s = sorted(f, key=lambda x: x.rate)
-#    print(s)
-#    break
-#    print(i.name, len(i.tunnels))
-#for v1, v2 in valvepairs:
-#    print(i[0].name, i[1].name)
-#    t1 = Tunnel(i.tunnels[0].length + i.tunnels[1].length)
-#    t2 = Tunnel(i.tunnels[0].length + i.tunnels[1].length)
-#    t1.src = v1
-#    t1.dst = v2
-#    t2.src = v2
-#    t2.dst = v1
-
-#print(valvepairs)
-
-
-makedot("play/day16-3.dot")
 
