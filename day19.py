@@ -32,18 +32,8 @@ for l in allinput:
     geodcost = [ 0, int(r[6]), 0, int(r[7]), 0 ]
     blueprints[bpindex] = [ [0, 0, 0, 0, 0], orecost, claycost, obsicost, geodcost ]
 
-def potentialgeodes(m, rob, res, highest):
-    robrange = itertools.islice(itertools.count(rob), m)
-    r = 0
-    for i in itertools.accumulate(robrange):
-        r = i + res
-        if r > highest:
-            return r
-    return r
-
 def haspotential(minutes, georobots, geodes, highest):
     # a simple while with integer variables is way faster than
-    # itertools.accumulate(itertools.islice(itertools.count(...), ...) etc
     geodes += georobots # unrolling the loop once seems to improve efficiency slightly
     if geodes > highest: return True
     georobots += 1
@@ -55,141 +45,112 @@ def haspotential(minutes, georobots, geodes, highest):
         minutes -= 1
     return False
 
-def minutestogeo(cost, rob, obsi):
-     totobsi = itertools.accumulate(itertools.count(rob), initial=obsi)
-     acclist = itertools.takewhile(lambda o: o < cost, totobsi)
-     count = 0
-     sum([1 for _ in acclist])
-     return count
-
-def recurse(minutesleft, robots, resources, skipped, globalstate):
-    # first make a choice and spend
-    # then robots collect
-    # then building robots finishes
+def recurse(minutesleft, robots, resources, skipped, unlocked, globalstate):
     if minutesleft == 0: return resources[GEO]
-    # throw away resources if we don't have enough minutes to possibly spend them
-    # to improve cache hits. this is a slight improvement
-    if resources[CLAY] >= globalstate["possiblespendingcache"][minutesleft][CLAY]:
-        resources[CLAY] = globalstate["possiblespendingcache"][minutesleft][CLAY]
-    if resources[ORE] >= globalstate["possiblespendingcache"][minutesleft][ORE]:
-        resources[ORE] = globalstate["possiblespendingcache"][minutesleft][ORE]
-    if resources[OBSI] >= globalstate["possiblespendingcache"][minutesleft][OBSI]:
-        resources[OBSI] = globalstate["possiblespendingcache"][minutesleft][OBSI]
-    # running without cache is not an option. a single blueprint takes > 5 seconds
+    # throw away resources if we don't have enough minutes left to possibly spend them. improves cache hits!
+    globalstate["maxrobots"][ORE] = max(globalstate["maxrobots"][ORE], robots[ORE])
+    globalstate["maxrobots"][CLAY] = max(globalstate["maxrobots"][CLAY], robots[CLAY])
+    globalstate["maxrobots"][OBSI] = max(globalstate["maxrobots"][OBSI], robots[OBSI])
+    globalstate["maxrobots"][GEO] = max(globalstate["maxrobots"][GEO], robots[GEO])
+    resources[ORE] = min(resources[ORE], globalstate["possiblespendingcache"][minutesleft][ORE])
+    resources[CLAY] = min(resources[CLAY], globalstate["possiblespendingcache"][minutesleft][CLAY])
+    resources[OBSI] = min(resources[OBSI], globalstate["possiblespendingcache"][minutesleft][OBSI])
     cachekey = (minutesleft,) + tuple(robots) + tuple(resources)
     if cachekey in globalstate["cachedres"]:
-        #coveredsearchspace += 5 ** minutesleft
         return globalstate["cachedres"][cachekey]
-    # using minutestogeo loses time. too much computing for the saving
-    #mintogeo = -1 - minutestogeo(costs[GEO][OBSI], robots[OBSI], resources[OBSI])
-    #if robots[GEO] == 0: mintogeo = 1
-
     if not haspotential(minutesleft, robots[GEO], resources[GEO], globalstate["bestresult"]):
         globalstate["cachedres"][cachekey] = 0
         return 0
-    choices = set()
-    for i in range(5):
-        canbuy = True
-        for j in range(5):
+    if globalstate["latestrobotat"][OBSI] > minutesleft and robots[OBSI] == 0:
+        return 0
+    if globalstate["latestrobotat"][CLAY] > minutesleft and robots[CLAY] == 0:
+        return 0
+    choices = 0
+    for i in ORE, CLAY, OBSI, GEO:
+        for j in [ORE, CLAY, OBSI, GEO]:
             if resources[j] < globalstate["costs"][i][j]:
-                canbuy = False
+                choices |= (1 << i)
                 break
-        if canbuy: choices.add(i)
-    if not GEO in choices and robots[GEO] == 0:
-        if not haspotential(minutesleft - 1, robots[GEO], resources[GEO], globalstate["bestresult"]):
-            globalstate["cachedres"][cachekey] = 0
-            return 0
-    #if not GEO in choices and not GEO in robots and not haspotential(minutesleft - 1, 0, 0, bestresult): return 0
-    if resources[CLAY] >= globalstate["possiblespendingcache"][minutesleft][CLAY]:
-        choices -= {CLAY}
-    if resources[ORE] >= globalstate["possiblespendingcache"][minutesleft][ORE]:
-        choices -= {ORE}
-    if resources[OBSI] >= globalstate["possiblespendingcache"][minutesleft][OBSI]:
-        choices -= {OBSI}
-    if choices.issuperset({ORE, CLAY, OBSI, GEO}):
-        choices -= {NONE}
-
-    # Big optimization. Can't do the same for ORE or OBSI unfortunately
-    # Doing the same for GEO is at best a very slight improvement
-    if CLAY not in robots and CLAY in choices: choices -= {NONE}
+    choices ^= 0b11111
+    if (choices & unlocked) == unlocked: choices &= 0b11110
+    if robots[CLAY] == 0 and (0b00100 & choices): choices &= 0b11110
     # HUGE optimization. We can't buy whatever we skipped last round
     # (must be saving for something else or otherwise we should have bought it ASAP)
-    choices -= skipped
-    if globalstate["highestcosts"][ORE] <= robots[ORE]: choices -= {ORE}
-    if globalstate["highestcosts"][CLAY] <= robots[CLAY]: choices -= {CLAY}
-    if globalstate["highestcosts"][OBSI] <= robots[OBSI]: choices -= {OBSI}
-    #if GEO not in robots and GEO in choices:
-    #    choices -= {NONE}
+    choices &= (skipped ^ 0b11111)
+    if globalstate["highestcosts"][ORE]  == robots[ORE]:  choices &= 0b11101
+    if globalstate["highestcosts"][CLAY] == robots[CLAY]: choices &= 0b11011
+    if not (minutesleft > 1): choices &= 0b01111
+    if not (minutesleft > 3): choices &= 0b10111
+    if not (minutesleft > 5): choices &= 0b11011
+    if not (minutesleft > 7): choices &= 0b11101
+
+    if   choices & 0b10000: choices = 0b10000
+    elif choices & 0b01000: choices = 0b01001
     geo = 0
-    # this specific ordering improves runtime
-    for c in GEO, OBSI, CLAY, ORE, NONE:
-        if not c in choices:
-            #coveredsearchspace += 5 ** (minutesleft - 1)
-            continue
+    for c in [c for c in [NONE, GEO, OBSI, CLAY, ORE] if (1 << c) & choices]:
         newresources = list(resources)
+        newresources[ORE]  += robots[ORE]  - globalstate["costs"][c][ORE]
+        newresources[CLAY] += robots[CLAY] - globalstate["costs"][c][CLAY]
+        newresources[OBSI] += robots[OBSI] - globalstate["costs"][c][OBSI]
+        newresources[GEO]  += robots[GEO]  - globalstate["costs"][c][GEO]
         newrobots = list(robots)
-        newresources[ORE] = newresources[ORE] + newrobots[ORE] - globalstate["costs"][c][ORE]
-        newresources[CLAY] = newresources[CLAY] + newrobots[CLAY] - globalstate["costs"][c][CLAY]
-        newresources[OBSI] = newresources[OBSI] + newrobots[OBSI] - globalstate["costs"][c][OBSI]
-        newresources[GEO] = newresources[GEO] + newrobots[GEO] - globalstate["costs"][c][GEO]
-        newrobots[c] = newrobots[c] + 1
-        newresources[0] = 0
-        newrobots[0] = 0
-        if c == NONE: skipped |= choices - {NONE}
-        else: skipped = set()
-        g  = recurse(minutesleft - 1, newrobots, newresources, skipped, globalstate)
-        if g > geo: geo = g
-
+        if c == NONE:
+            skipped |= (choices & 0b11110)
+        else:
+            skipped = 0
+            newrobots[c] += 1
+            unlocked |= 1 << (c + 1)
+        #print("Minute", minutesleft, "choices", choices, "chosing", c, "resources", newresources, "robots", newrobots)
+        g  = recurse(minutesleft - 1, newrobots, newresources, skipped, unlocked, globalstate)
+        geo = max(g, geo)
     globalstate["cachedres"][cachekey] = geo
-
-    if geo > globalstate["bestresult"]:
-        globalstate["bestresult"] = geo
+    globalstate["bestresult"] = max(globalstate["bestresult"], geo)
     return geo
 
 bestresult = 0
 highestcosts = [0, 0, 0, 0, 0]
 
 def runbp(n, minutes):
+    tim = aoc.Timing(str(n))
     cachedres = dict()
-    fastestobsidian = 0
-    fastestgeo = 0
     costs = blueprints[n]
     highestcosts = list(map(max, zip(*costs)))
     possiblespendingcache = dict()
     for i in range(1, 33):
-        possiblespendingcache[i] = list(map(operator.mul, highestcosts, itertools.repeat(i)))
+        possiblespendingcache[i] = list(map(operator.mul, highestcosts, itertools.repeat(i - 1)))
+    latestpossibleobsi = sum([1 for x in itertools.accumulate(range(minutes)) if x < costs[GEO][OBSI]])
+    latestpossibleclay = latestpossibleobsi + sum([1 for x in itertools.accumulate(range(minutes)) if x < costs[OBSI][CLAY]])
     bestresult = 0
-    searchspace = 5 ** minutes
-    coveredsearchspace = 1
-    percentsearchspace = 0
     timing = False
-    if timing: starttime = time.time()
-    globalstate =  { "percentsearchspace": percentsearchspace,
-                     "coveredsearchspace": coveredsearchspace,
-                     "searchspace": searchspace,
-                     "bestresult": bestresult,
-                     "possiblespendingcache": possiblespendingcache,
+#    for i in range(1, 33):
+        #       possiblespendingcache[i][CLAY] //= 2
+    globalstate =  { "bestresult": bestresult,
                      "highestcosts": highestcosts,
+                     "possiblespendingcache": possiblespendingcache,
                      "costs": costs,
+                     "maxrobots": [0, 0, 0, 0, 0],
                      "cachedres": cachedres,
-                     "fastestobsidian": fastestobsidian,
-                     "fastestgeo": fastestgeo }
+                     "latestrobotat": [0, 0, latestpossibleclay, latestpossibleobsi, 0],
+                     "choicescount": { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+                     }
 
+    if n == 3 and minutes == 32: globalstate["bestresult"] = 4
+    if n == 2 and minutes == 32: globalstate["bestresult"] = 3
 
-    geo = recurse(minutes, [0, 1, 0, 0, 0], [0, 0, 0, 0, 0], set(), globalstate)
-    if timing: print("Time: %.2f" % (time.time() - starttime))
+    geo = recurse(minutes, [0, 1, 0, 0, 0], [0, 0, 0, 0, 0], 0, 0b00110, globalstate)
+    tim.add(str(n))
+    #tim.print()
+    #print("%-2d" % n, "%.3f" % (tim.timestamps[-1][1] - tim.timestamps[-2][1]), "%-2d" % minutes, "%-2d" % geo, globalstate["maxrobots"], costs)
+    if 'robots' in globalstate:
+        print(globalstate['robots'])
     return geo
 
-totalgeodes = dict()
-"""
-    if inp == bytes(b'\x1b[A'): print("UP")
-    if inp == bytes(b'\x1b[D'): print("LEFT")
-    if inp == bytes(b'\x1b[B'): print("DOWN")
-    if inp == bytes(b'\x1b[C'): print("RIGHT")
-"""
-CURSORLEFT = "\x1b[50D"
+runbp(1, 17)
+#sys.exit()
 
 if __name__ == "__main_":
+    CURSORLEFT = "\x1b[50D"
+    totalgeodes = dict()
     for i in blueprints:
         lastone = len(blueprints)
         print(CURSORLEFT, "Part 1: ? %d/%d" % (i, lastone), sep="", end="", flush=True)
@@ -210,14 +171,13 @@ def runbpwrapper( tup ):
     return runbp( tup[0], tup[1] )
 
 t=aoc.Timing("Times")
-with aoc.Spinner():
-    with multiprocessing.Pool(8) as p:
-        res = p.map(runbpwrapper, [(1, 32), (2, 32), (3, 32)] + [(i + 1, 24) for i in range(30)])
+#with aoc.Spinner():
+with multiprocessing.Pool(4) as p:
+    res = p.map(runbpwrapper, [(1, 32), (2, 32), (3, 32)] + [(i + 1, 24) for i in range(30)], 1)
 t.add("Done")
-t.print()
 
-print("Multi part1:", sum(itertools.starmap(operator.mul, [(n + 1, k) for n, k in enumerate(res[3:])])))
-print("Multi part2:", res[0] * res[1] * res[2])
+print("Part 1:", sum(itertools.starmap(operator.mul, [(n + 1, k) for n, k in enumerate(res[3:])])))
+print("Part 2:", res[0] * res[1] * res[2])
 
-# TODO! a bit too long runtime. maybe discard paths where there's not enough time left to make enough obsi robots to collect enough obsidian to make a single geo robot
+#print(aoc.htmlanswers())
 
