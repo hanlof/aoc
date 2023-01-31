@@ -1,4 +1,6 @@
 import sys, os, copy, re, itertools as I, operator as O
+import time
+import aoc
 B = __builtins__
 
 easyinput = """\
@@ -25,6 +27,16 @@ class Blizzard:
         s.y = y
         s.sign = sign
         s.step = signstomovement[sign]
+    def atminute(s, m):
+        if s.step[0] == 0:
+            y = s.y -1 + s.step[1] * m
+            y = 1 + (y % (s.maxy))
+            x = s.x
+        else:
+            x = s.x -1 + s.step[0] * m
+            x = 1 + (x % (s.maxx))
+            y = s.y
+        return (x, y)
     def advance(s):
         s.x += s.step[0]
         s.y += s.step[1]
@@ -51,13 +63,15 @@ class Blizzard:
     def __repr__(s):
         return s.__str__()
     def __str__(s):
-        return "<%d %d>" % (s.x, s.y)
+        return "<%d %d %c >" % (s.x, s.y, s.sign)
     def __hash__(s):
         return (s.y << 20) + s.x
     def __lt__(s, o):
         return s.x < o.x
 
+staticblizzards = list()
 def parse(inputlines):
+    global staticblizzards
     blizzards = list()
     global walls
     walls = set()
@@ -67,6 +81,8 @@ def parse(inputlines):
         for x, c in enumerate(line):
             if c in "<>v^":
                 b = Blizzard(x, y, c, dimensions)
+                b2 = Blizzard(x, y, c, dimensions)
+                staticblizzards.append(b2)
                 blizzards.append(b)
             elif c == "#":
                 walls.add( (x, y) )
@@ -92,14 +108,43 @@ def printfield(bli, dim, playerpos):
             else: print(" ", end="")
         print("")
 
-def movementchoices(bliz, px, py):
-    global  walls
-    choices = list()
+count = 0
+blockedposcache = dict()
+count = 0
+def movementchoices2(i, px, py):
+    global walls
+    global blizzards
+    global count
+    count += 1
+    if (count % 100) == 0:
+        print(px, py, i, count * len(blizzards))
+    #bliz = walls | set([b.atminute(i) for b in blizzards])
+    bliz = set([b.atminute(i % 700) for b in blizzards])
     for rx, ry in [(0, 0), (0, 1), (1, 0), (-1, 0), (0, -1)]:
         wantedpos = (px + rx, py + ry)
-        if wantedpos not in bliz and \
-           wantedpos not in walls:
+        if wantedpos not in bliz and wantedpos not in walls:
                yield wantedpos
+
+movementcache = dict()
+def movementchoices3(minute, px, py):
+    bliz = cachedblizzardpositions[minute % 700]
+    yield from [p for p in [(px + 1, py), (px, py+1), (px, py), (px-1, py), (px, py-1)] if p not in bliz and p not in walls]
+
+def movementchoices(bliz, px, py):
+    global walls
+    global movementcache
+    for rx, ry in [(0, 1), (1, 0), (0, 0), (-1, 0), (0, -1)]:
+        wantedpos = (px + rx, py + ry)
+        if wantedpos not in bliz:
+               yield wantedpos
+        #cachekey = (minutes,) + (wantedpos,)
+        #if cachekey in blockedposcache:
+        #    blockedpositions = blockedposcache[cachekey]
+        #else:
+            #blockedpositions =  set([b.atminute((minutes) % 700) for b in blizzardsbycol[wantedpos[0]]])
+            #blockedpositions |= set([b.atminute((minutes) % 700) for b in blizzardsbyrow[wantedpos[1]]])
+            #blockedposcache[cachekey] = blockedpositions
+        #if wantedpos not in blockedpositions and wantedpos not in walls:
 
 # The only unique parameters for a state is minute and x, y position
 # because the minute explicitly decides the state of the moving blizards.
@@ -108,57 +153,80 @@ def movementchoices(bliz, px, py):
 # The queue of states to try culls itself because it's held in a set()
 # A separate set() of previously tried positions is maintained as well
 # so we don't add old processed positions to the queue.
+donepositions = set()
+highestminute = 0
+def mdist(goal, pos):
+    return abs(goal[0] - pos[0]) + abs(goal[1] - pos[1])
+
+import heapq
+class QueueItem():
+    def __init__(s, state, goal, startminute):
+        s.state = state
+        s.dist = abs(goal[0] - s.state[0]) + abs(goal[1] - s.state[1]) + (s.state[2] - startminute)
+    def __lt__(s, o):
+        return s.dist < o.dist
+    def tup(s):
+        return s.state
+
+A = [ 0, 0, 0 ]
 def findfastest(startpos, endpos, startminute):
-    global cachedblizzardpositions
-    counter = 0
-    fastest = None
     donepositions = set()
-    queue = set()
-    queue.add ( (startpos[0], startpos[1], startminute) )
+    queue = [ QueueItem( (startpos[0], startpos[1], startminute), endpos, startminute) ]
     while len(queue) > 0:
-        curx, cury, minutes = queue.pop()
-        if fastest is not None:
-            if minutes > fastest:
-                continue
-        blockedpositions = cachedblizzardpositions[minutes % 700]
-        for choice in movementchoices(blockedpositions, curx, cury):
+        curstate = heapq.heappop(queue).state
+        if curstate in donepositions: continue
+        curx, cury, minutes = curstate
+        for choice in [(curx, cury+1), (curx+1, cury), (curx, cury), (curx-1, cury), (curx, cury-1)]:
+            if choice in xblizzards[minutes % 100] or choice in yblizzards[minutes % 35] or choice in walls: continue
             if endpos == choice:
-                if fastest is None:
-                    fastest = minutes
-                    continue
-                if minutes < fastest:
-                    fastest = minutes
-                    continue
-            temp = (choice[0], choice[1], minutes + 1)
-            if not temp in donepositions:
-                queue.add(temp)
-        donepositions.add( (curx, cury, minutes) )
-        if (counter % 20000) == 10000:
-            print("Working... cycle is", counter, "minutes is", minutes, "queue-length is", len(queue))
-        counter += 1
-    print("Done! Fastest trip from %s to %s starting at minude %d is %d" % (startpos, endpos, startminute, fastest))
-    return fastest
+                return minutes
+            newstate = (choice[0], choice[1], minutes + 1)
+            if not newstate in donepositions:
+                heapq.heappush( queue, QueueItem(newstate, endpos, startminute) )
+        donepositions.add(curstate)
 
-blizzards, walls, playerpos, goalpos = parse(myinput)
+    assert False, "What"
 
-import time
-timing = [ time.time() ]
-print("Pre-caching blizzard positions. Assuming the blizzards cycle at 700, have not verified for other inputs than my own... ", end="")
-sys.stdout.flush()
+blizzards, walls, startpos, goalpos = parse(myinput)
 
-cachedblizzardpositions = dict()
-for i in range(0,700):
-    cachedblizzardpositions[i] = set([b.toxytuple() for b in blizzards])
-    for b in blizzards:
-        b.advance()
+tim = aoc.Timing("Timing:")
 
-print("")
-phase1fastest = findfastest( (1, 0), goalpos, 0)
-phase2fastest = findfastest( goalpos, (1, 0), phase1fastest)
-phase3fastest = findfastest( (1, 0), goalpos, phase2fastest)
+maxx, maxy = 0, 0
+for b in blizzards:
+    maxx = max(maxx, b.x)
+    maxy = max(maxy, b.y)
 
-print("Part 1:", phase1fastest)
-print("Part 2:", phase3fastest)
+minx, miny = maxx, maxy
+for b in blizzards:
+    minx = min(minx, b.x)
+    miny = min(miny, b.y)
 
-timing.append( time.time() )
-print("Runtime: %.3fs" % (timing[1] - timing[0]))
+yblizzards = [set() for l in range(maxy + 3)]
+xblizzards = [set() for l in range(maxx + 3)]
+
+print("Part 1:", end=" ", flush=True)
+with aoc.Spinner(delay=0.1):
+    for m in range(maxy + 3):
+        for b in blizzards:
+            if b.step[0] == 0:
+                yblizzards[m].add(b.atminute(m))
+    for m in range(maxx + 3):
+        for b in blizzards:
+            if b.step[1] == 0:
+                xblizzards[m].add(b.atminute(m))
+    #for i in range(350):
+        #cachedblizzardpositions[i] = xblizzards[i % 100] | yblizzards[i % 35]
+    tim.add("Pre-caching done")
+    phase1fastest = findfastest( startpos, goalpos, 0)
+    tim.add("Phase 1 done")
+print(phase1fastest)
+
+print("Part 2:", end=" ", flush=True)
+with aoc.Spinner():
+    phase2fastest = findfastest( goalpos, startpos, phase1fastest)
+    tim.add("Phase 2 done")
+    phase3fastest = findfastest( startpos, goalpos, phase2fastest)
+    tim.add("Phase 3 done")
+print(phase3fastest)
+# tim.print()
+
