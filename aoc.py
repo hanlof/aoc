@@ -4,6 +4,14 @@ import inspect
 import itertools
 import time
 import threading
+from lxml import etree
+
+"""
+    if inp == bytes(b'\x1b[A'): print("UP")
+    if inp == bytes(b'\x1b[D'): print("LEFT")
+    if inp == bytes(b'\x1b[B'): print("DOWN")
+    if inp == bytes(b'\x1b[C'): print("RIGHT")
+"""
 
 verbose = 1
 
@@ -40,11 +48,10 @@ class Spinner():
         states = itertools.cycle((list("/-\\|")))
         print(next(states), end="", flush=True)
         for c in states:
-            time.sleep(s.delay)
-            print(s.CURSORLEFT, c, sep="", end="", flush=True)
-            if (s.e.is_set()):
+            if s.e.wait(timeout=s.delay):
                 print(s.CURSORLEFT, end="", flush=True)
                 break
+            print(s.CURSORLEFT, c, sep="", end="", flush=True)
     def stop(s):
         s.e.set()
         s.t.join()
@@ -84,7 +91,7 @@ def metadata(day=None):
 
 def getinput(day=None, conv=None):
     verbose = getverbosity()
-    cinfo = metadata()
+    cinfo = metadata(day=day)
     if day is None:
         inputfilename = cinfo['inputfname']
     else:
@@ -104,13 +111,25 @@ def sections(elements, conv=None):
     if conv is None: t = lambda x: x
     else: t = conv
     sections = itertools.groupby(elements, key=lambda l: l == "")
-    return [[t(l) for l in sec] for empty, sec in sections if not empty]
+    return [[t(l) for l in sec] for isempty, sec in sections if not isempty]
+
+#for i in h.findall(".//em"): print(i.text)
+
+def gethtmletree(day=None):
+    c = metadata(day=day)
+    return etree.HTML(open(c['htmlfname']).read())
 
 def htmlcodesections(day=None):
-    c = callerinfo()
+    c = metadata()
     s = open(c['htmlfname']).read()
-    a = re.findall("<pre><code>(.*)?</code></pre>", s, flags=re.MULTILINE | re.DOTALL)
+    a = re.findall("<pre><code>(.*?)</code></pre>", s, flags=re.MULTILINE | re.DOTALL)
     return [s.splitlines() for s in a]
+
+def htmlemcodesections(day=None):
+    c = metadata()
+    s = open(c['htmlfname']).read()
+    a = re.findall("<em><code>(.*?)</code></em>", s, flags=re.MULTILINE | re.DOTALL)
+    return [s for s in a]
 
 def htmlcodeemsections(day=None):
     c = metadata()
