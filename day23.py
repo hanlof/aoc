@@ -1,6 +1,5 @@
-import itertools as I
+import aoc
 import operator as O
-B = __builtins__
 
 # Dancing elfs. Spreading out points according to specific rules.
 
@@ -25,11 +24,6 @@ N  =  0-1j; S  =  0+1j; W  = -1+0j; E  = +1+0j
 NW = -1-1j; NE = +1-1j; SW = -1+1j; SE = +1+1j
 surrounding = [N, S, E, W, NW, NE, SW, SE]
 directions = [N, S, W, E]
-directionsquarestocheck = [
-    [NW, N, NE],
-    [SW, S, SE],
-    [NW, W, SW],
-    [NE, E, SE]]
 
 def parseinput(inputlines):
     elfs = set()
@@ -40,6 +34,7 @@ def parseinput(inputlines):
     return elfs
 
 def printfield(elfs):
+    print("\x1b[2J\033[1;1H", end="", flush=True)
     for y in range(int(min(elfs, key=lambda a: a.imag).imag), int(max(elfs, key=lambda a: a.imag).imag) + 1):
         for x in range(int(min(elfs, key=lambda a: a.real).real), int(max(elfs, key=lambda a: a.real).real) + 1):
             print("#" if (x + y * 1j in elfs) else ".", end="")
@@ -103,9 +98,9 @@ def getpossiblemoves(elf, elfs, moveslist, chilling):
 
 def dance(inputelfs, rounds=None, verbose=0):
     elfs = set(inputelfs)
-    directioncounter = I.cycle(range(4))
+    directioncounter = itertools.cycle(range(4))
     chilling = set()
-    for currentround in I.count(1):
+    for currentround in itertools.count(1):
         # create list elfs of elfs that need to move
         movable = dict()
         for elf in elfs - chilling:
@@ -114,10 +109,10 @@ def dance(inputelfs, rounds=None, verbose=0):
         if verbose: print("Round", currentround, "movable", len(movable))
         # create list of pairs of where elfs want to move from and to
         proposedmoves = list()
+        aaa = [(i, 1 << i) for i in itertools.islice(directioncounter, 4)]
         for elf, elfdirections in movable.items():
-            directioncounter, dirs = I.tee(directioncounter)
-            for i in I.islice(dirs, 4):
-                if elfdirections & (1 << i):
+            for i, shifted in aaa:
+                if elfdirections & shifted:
                     proposedmoves.append( (elf, elf + directions[i]) )
                     break
         next(directioncounter)
@@ -153,9 +148,13 @@ def part1analysis(e):
 
 elfs = parseinput(myinput)
 
+tim = aoc.Timing()
 _, e = dance(elfs, 10, verbose=0)
 print("Part 1:", part1analysis(e))
+tim.add("p1")
 
 rounds, e = dance(elfs, None, verbose=0)
 print("Part 2:", rounds)
+tim.add("p2")
+#tim.print()
 

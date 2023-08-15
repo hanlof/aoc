@@ -1,9 +1,10 @@
-import aoc
+#!/usr/bin/python3
+
 import sys
 import os
+import re
 import datetime
 from io import StringIO
-
 
 class TimedIO(StringIO):
     def __init__(s, split=None):
@@ -12,14 +13,14 @@ class TimedIO(StringIO):
         s.split = split
         s.counter =  0
         super().__init__()
-    def write(s, data): 
+    def write(s, data):
         if s.split:
             s.split.write(data)
         s.counter += 1
         s.times.append(datetime.datetime.now())
         s.parts.append(data)
         super().write(data)
-    def flush(s): 
+    def flush(s):
         if s.split:
             s.split.flush()
         super().flush()
@@ -27,6 +28,8 @@ class TimedIO(StringIO):
         s.times.append(datetime.datetime.now())
         super().close()
     def gettime(s, regex):
+        # XXX TODO printing timings disrupts recognition of patterns.
+        #       need to investigate!
         m = re.search(regex, s.getvalue(), re.MULTILINE)
         if m:
             patternstart, patternend = m.span()
@@ -51,17 +54,24 @@ class Redir():
         sys.stdout = self._stdout
 
 for i in range(1, 26):
-    correctanswers = aoc.htmlanswers(i)
-    desc = aoc.htmltitle(i)
+    #correctanswers = aoc.htmlanswers(i)
+    #desc = aoc.htmltitle(i)
     print("Day %-2d " % i, end="")
-    #with Redir(TimedIO(split=sys.stdout)) as o:
-    with Redir(TimedIO(split=None)) as o:
-        __import__("day%02d" % i)
+    split = None
+    # XXX super lazy arguments handling
+    if len(sys.argv) > 1:
+        split = sys.stdout
+    with Redir(TimedIO(split=split)) as o:
+        d = __import__("day%02d" % i)
+        # Potentially scary shenanigans to make the aoc module run
+        # module-level code each time it is imported from the different modules we load
+        if 'aoc' in sys.modules:
+            del(sys.modules['aoc'])
     t1 = o.io.gettime("^Part 1:.*$")
     t2 = o.io.gettime("^Part 2:.*$")
     if t1 and t2:
-        print("%.3f " % t2, end="")
+        print(f"{t2:.3f} " , end="")
         print("\x1b[1m", "*" * ((int(t1 * 60))), sep="", end="\x1b[0m")
         print("*" * ((int((t2 - t1) * 60))))
     else:
-        print("day", i, "does not output 'Part 1'/'Part 2' strings")
+        print(f"day {i} does not output 'Part 1'/'Part 2' strings")

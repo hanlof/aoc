@@ -4,15 +4,20 @@ import inspect
 import itertools
 import time
 import threading
+import sys
+from io import StringIO
 from lxml import etree
 
+""" Notes
+    * Clean up html parsing
+    * Move day10 big ascii translation to here
+    * Move day 22 interaction to here
+    * Add some color printing
+        if inp == bytes(b'\x1b[A'): print("UP")
+        if inp == bytes(b'\x1b[D'): print("LEFT")
+        if inp == bytes(b'\x1b[B'): print("DOWN")
+        if inp == bytes(b'\x1b[C'): print("RIGHT")
 """
-    if inp == bytes(b'\x1b[A'): print("UP")
-    if inp == bytes(b'\x1b[D'): print("LEFT")
-    if inp == bytes(b'\x1b[B'): print("DOWN")
-    if inp == bytes(b'\x1b[C'): print("RIGHT")
-"""
-
 verbose = 1
 
 class Timing():
@@ -56,17 +61,19 @@ class Spinner():
         s.e.set()
         s.t.join()
 
-def firstcallerstackframe():
+def callerstackframe():
     callstack = inspect.stack()
     for frame in callstack:
         if frame.filename == callstack[0].filename:
+            continue
+        if frame.filename.startswith('<'):
             continue
         caller = frame
         break
     return caller
 
 def getverbosity():
-    callerframe = firstcallerstackframe()
+    callerframe = callerstackframe()
     global verbose
     if "verbose" in callerframe.frame.f_globals:
         verbose = callerframe.frame.f_globals['verbose']
@@ -76,7 +83,7 @@ def getverbosity():
 
 def metadata(day=None):
     if day is None:
-        callerframe = firstcallerstackframe()
+        callerframe = callerstackframe()
         pyfile = callerframe.filename
         r = re.search("day(\d+)", pyfile)
         if r[1]:
@@ -101,12 +108,12 @@ def getinput(day=None, conv=None):
         # XXX try to fetch it using ./fetch_input ?!
         raise Exception("Input file'" + inputfilename + "'not found")
     lines = open(inputfilename).read().splitlines()
-    if conv is not None: return map(conv, lines)
+    if conv is not None: return list(map(conv, lines))
     return lines
 
 
 # splits input into sections by empty lines
-# and converts the types of elements
+# and convert the types of elements
 def sections(elements, conv=None):
     if conv is None: t = lambda x: x
     else: t = conv
@@ -120,19 +127,19 @@ def gethtmletree(day=None):
     return etree.HTML(open(c['htmlfname']).read())
 
 def htmlcodesections(day=None):
-    c = metadata()
+    c = metadata(day)
     s = open(c['htmlfname']).read()
     a = re.findall("<pre><code>(.*?)</code></pre>", s, flags=re.MULTILINE | re.DOTALL)
     return [s.splitlines() for s in a]
 
 def htmlemcodesections(day=None):
-    c = metadata()
+    c = metadata(day)
     s = open(c['htmlfname']).read()
     a = re.findall("<em><code>(.*?)</code></em>", s, flags=re.MULTILINE | re.DOTALL)
     return [s for s in a]
 
 def htmlcodeemsections(day=None):
-    c = metadata()
+    c = metadata(day)
     s = open(c['htmlfname']).read()
     a = re.findall("<code><em>(.*?)</em></code>", s, flags=re.MULTILINE | re.DOTALL)
     return [s for s in a]
@@ -149,4 +156,20 @@ def htmltitle(day=None):
     a = re.findall("day-desc..<h2>(.*?)</h2>", s, flags=re.MULTILINE | re.DOTALL)
     return a[0]
     """day-desc..<h2>.*</h2>"""
+
+# import everything that potentially will be useful right into the importer namespace
+importerframe = callerstackframe()
+if importerframe:
+    importerframe.frame.f_globals["itertools"] = __import__("itertools")
+    importerframe.frame.f_globals["re"] = __import__("re")
+    importerframe.frame.f_globals["os"] = __import__("os")
+    importerframe.frame.f_globals["numpy"] = __import__("numpy")
+    importerframe.frame.f_globals["inspect"] = __import__("inspect")
+    importerframe.frame.f_globals["threading"] = __import__("threading")
+    importerframe.frame.f_globals["operator"] = __import__("operator")
+    importerframe.frame.f_globals["functools"] = __import__("functools")
+    importerframe.frame.f_globals["copy"] = __import__("copy")
+    importerframe.frame.f_globals["fractions"] = __import__("fractions")
+    importerframe.frame.f_globals["aoc_codeblocks"] = htmlcodesections()
+    importerframe.frame.f_globals["aoc_constants"] = htmlemcodesections() + htmlcodeemsections()
 

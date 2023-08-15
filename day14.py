@@ -1,7 +1,4 @@
-import sys
-import re
 import aoc
-import itertools
 
 maxy = 0
 mapset = set()

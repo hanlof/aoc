@@ -1,15 +1,6 @@
-import sys
-import re
-import os
+import aoc
 
-print(__file__)
-
-#inputfile = sys.stdin
-
-allinput = open("inputdata/input13").readlines()
-allinput.append("\n")
-
-#l.extend(list(' ' * (3 - (len(l) % 3))))
+allinput = aoc.getinput()
 
 def comp(l, r):
     if l == None and r == None: return 0
@@ -39,33 +30,27 @@ for i in zip(it, it, it):
     #print(l, "<=>", r)
     if 1 == comp(l, r):
         ans = ans + cycle
-        print(cycle, "is right order")
+        #print(cycle, "is right order")
     cycle = cycle + 1
 
-#  4504 too low
 print("Part 1:", ans)
 
 packets = [ [[2]], [[6]] ]
 for i in allinput:
-    if i == "\n": continue
+    if i == "": continue
     packets.append(eval(i))
 
-for i in packets:
-    print(i)
-
-print("(----------------)")
-import functools
 packets.sort(reverse=True, key=functools.cmp_to_key(comp))
 ans2 = 0
 ans6 = 0
 cycles = 1
 for i in packets:
-    print(i)
+    #print(i)
     if i == [[2]]:
-        print("2 is at", cycles)
+        #print("2 is at", cycles)
         ans2 = cycles
     if i == [[6]]:
-        print("6 is at", cycles)
+        #print("6 is at", cycles)
         ans6 = cycles
     cycles = cycles + 1
 

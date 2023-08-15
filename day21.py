@@ -1,14 +1,9 @@
-import re
-import sys
-import itertools
-import fractions
+import aoc
 
 nodes = dict()
-
-f = open("inputdata/input21")
-for i in f.readlines():
+for i in aoc.getinput():
     s = i.split(": ")
-    nodes[s[0]] = s[1][:-1]
+    nodes[s[0]] = s[1]
 
 def recurse1(node):
     #print("AAA", n)

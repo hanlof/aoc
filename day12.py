@@ -1,5 +1,3 @@
-import sys
-import re
 import aoc
 
 class Node():
@@ -23,9 +21,12 @@ class Node():
     def __str__(self):
         return "%s%-3d" % ( chr(self.elevation or "-"), self.distance or -2)
 
+
+lines = aoc.getinput()
 def parseandsetup(inputlines):
     nodedict = dict()
     # Create nodes (without connections)
+    #for x, elesign, y in enumerate([(row, y) for y, row in enumerate(inputlines)]):
     for y, row in enumerate(inputlines):
         for x, elesign in enumerate(row):
             node = Node(x, y, elesign)

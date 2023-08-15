@@ -1,5 +1,4 @@
-import sys
-import re
+import aoc
 
 class XY():
     def __init__(s, x, y):
@@ -195,7 +194,7 @@ for ylevel in intersections:
             part2x = x1 + 1
             part2y = ylevel + delta
             print("Part 2:", part2x * 4 * 1000 * 1000 + part2y)
-            sys.exit(0)
+            #sys.exit(0)
 
 # 2686239 is the ylevel for Part 2
 # 3316868 is the x coordinate for Part 2

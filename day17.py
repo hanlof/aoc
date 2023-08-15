@@ -1,6 +1,4 @@
 import aoc
-import itertools
-import sys
 
 class RockGenerator():
     ROCKS = list([
@@ -162,7 +160,7 @@ for i in range(remaining):
 
 print("Part 2:", f.highest + times * longestdelta)
 tim.add("done")
-tim.print()
+#tim.print()
 
 print(aoc.htmlanswers())
 

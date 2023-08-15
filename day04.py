@@ -1,7 +1,5 @@
-import sys
-import re
+import aoc
 
-print("Day 4: Camp Cleanup")
 allinput = open("inputdata/input04").readlines()
 
 p1ans, p2ans = 0, 0

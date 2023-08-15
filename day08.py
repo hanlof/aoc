@@ -1,4 +1,4 @@
-import numpy
+import aoc
 
 def p1compact(treematrix):
     # create new matrix with 2 slots for each tree: original value plus a visibility flag

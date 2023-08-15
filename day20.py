@@ -6,7 +6,6 @@ def mix(l, times):
         for i, steps in enumerate(l):
             pos = t.index(i)
             newpos = (pos + steps) % (len(l) - 1)
-
             t.pop(pos)
             t.insert(newpos, i)
 

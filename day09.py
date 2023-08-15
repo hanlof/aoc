@@ -1,4 +1,4 @@
-import re, itertools
+import aoc
 
 def update_tail(head, tail):
     dx = head.real - tail.real
@@ -21,7 +21,6 @@ def simrope(ropelen, moves):
             positions.add(rope[-1])
     return len(positions)
 
-print("Day 9: Rope simulations")
 allinput = open("inputdata/input09").readlines()
 print("Part 1:", simrope(2, allinput))
 print("Part 2:", simrope(10, allinput))

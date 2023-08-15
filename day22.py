@@ -1,9 +1,5 @@
-import itertools as I
-import operator as O
-B = __builtins__
-import re, io
-import sys, tty, termios
-import select, copy
+import aoc
+import io, tty, termios, select
 
 width, height = 0, 0
 minx, maxx, miny, maxy = list(), list(), list(), list()
@@ -14,11 +10,11 @@ def parse(inputlines):
     m = list()
     it = iter(inputlines)
     # read input and create horizontal lines
-    for line in I.takewhile(lambda l: l != "", it):
+    for line in itertools.takewhile(lambda l: l != "", it):
         height += 1
         m.append(line)
     # fill in missing spaces so that all squares are accessible
-    maxlen = max(B.map(len, m))
+    maxlen = max(map(len, m))
     width = maxlen
     miny = [height] * width
     maxy = [0] * width
@@ -61,7 +57,7 @@ easyinput = """\
 
 myinput = open("inputdata/input22").read().splitlines()
 
-map, moves = parse(myinput)
+mapx, moves = parse(myinput)
 
 R = 0
 D = 1
@@ -89,7 +85,7 @@ def part1moves():
                 elif direction == U:
                     wantedy -= 1
                     if wantedy < miny[xpos]: wantedy = maxy[xpos]
-                if map[wantedy][wantedx] == '#': break
+                if mapx[wantedy][wantedx] == '#': break
                 xpos = wantedx
                 ypos = wantedy
         elif m == 'L':
@@ -148,7 +144,7 @@ def part2moves(printat=None):
     ypos = 0
     xpos = minx[0]
     direction = R
-    tracemap = copy.deepcopy(map)
+    tracemap = copy.deepcopy(mapx)
     counter = 0
     for m in iter(re.split("(R|L)", moves)):
         if m.isdigit():
@@ -172,7 +168,7 @@ def part2moves(printat=None):
                     wantedy -= 1
                     if wantedy < miny[xpos]:
                         wantedx, wantedy, wanteddir = edgemovement(xpos, ypos, direction)
-                if map[wantedy][wantedx] == '#':
+                if mapx[wantedy][wantedx] == '#':
                     break
                 xpos = wantedx
                 ypos = wantedy

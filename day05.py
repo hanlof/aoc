@@ -1,6 +1,4 @@
-import sys
-import re
-
+import aoc
 inputfile = open("inputdata/input05")
 allinput = inputfile.readlines()
 

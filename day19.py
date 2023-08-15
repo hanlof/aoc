@@ -1,10 +1,5 @@
-import sys
-import operator
-import itertools
-import re
-import time
-import multiprocessing
 import aoc
+import multiprocessing
 
 # Not enough minerals....
 
@@ -22,7 +17,7 @@ costs = [ [0, 0, 0, 0, 0], [ 0, 4, 0, 0, 0], [ 0, 4, 0, 0, 0], [ 0, 4, 10, 0, 0]
 #robots[ORE] = 1
 
 blueprints=dict()
-allinput = open("inputdata/input19").readlines()
+allinput = aoc.getinput()
 for l in allinput:
     r = re.search("^Blueprint (\d+): Each ore robot costs (\d+) ore. Each clay robot costs (\d+) ore. Each obsidian robot costs (\d+) ore and (\d+) clay. Each geode robot costs (\d+) ore and (\d+) obsidian\..*", l)
     bpindex = int(r[1])
@@ -148,7 +143,7 @@ def runbp(n, minutes):
 runbp(1, 17)
 #sys.exit()
 
-if __name__ == "__main_":
+if __name__ == "__main__XYZ":
     CURSORLEFT = "\x1b[50D"
     totalgeodes = dict()
     for i in blueprints:
@@ -167,17 +162,28 @@ if __name__ == "__main_":
     print("Part 2:", geo)
 
 # threading does not save time, but multiprocessing do!
-def runbpwrapper( tup ):
-    return runbp( tup[0], tup[1] )
+if __name__ == "day19":
+    def runbpwrapper( tup ):
+        return runbp( tup[0], tup[1] )
 
-t=aoc.Timing("Times")
-#with aoc.Spinner():
-with multiprocessing.Pool(4) as p:
-    res = p.map(runbpwrapper, [(1, 32), (2, 32), (3, 32)] + [(i + 1, 24) for i in range(30)], 1)
-t.add("Done")
+    t=aoc.Timing("Times")
+    #with aoc.Spinner():
+    res = map(runbpwrapper, [(1, 32), (2, 32), (3, 32)] + [(i + 1, 24) for i in range(30)])
+    t.add("Done")
 
-print("Part 1:", sum(itertools.starmap(operator.mul, [(n + 1, k) for n, k in enumerate(res[3:])])))
-print("Part 2:", res[0] * res[1] * res[2])
+    res = list(res)
+    print("Part 1:", sum(itertools.starmap(operator.mul, [(n + 1, k) for n, k in enumerate(res[3:])])))
+    print("Part 2:", res[0] * res[1] * res[2])
 
-#print(aoc.htmlanswers())
+if __name__ == "__main__":
+    def runbpwrapper( tup ):
+        return runbp( tup[0], tup[1] )
 
+    t=aoc.Timing("Times")
+    #with aoc.Spinner():
+    with multiprocessing.Pool(4) as p:
+        res = p.map(runbpwrapper, [(1, 32), (2, 32), (3, 32)] + [(i + 1, 24) for i in range(30)], 1)
+    t.add("Done")
+
+    print("Part 1:", sum(itertools.starmap(operator.mul, [(n + 1, k) for n, k in enumerate(res[3:])])))
+    print("Part 2:", res[0] * res[1] * res[2])

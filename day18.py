@@ -1,15 +1,14 @@
-import re
-_b = __builtins__
+import aoc
 
 units = set()
 maxcoord = [0, 0, 0]
 def parse():
     global maxcoord
-    inputlines = open("inputdata/input18").readlines()
+    inputlines = aoc.getinput()
     for line in inputlines:
         unit = tuple(map(int, line.split(",")))
         units.add(unit)
-        maxcoord = list(map(_b.max, zip(maxcoord, unit)))
+        maxcoord = list(map(max, zip(maxcoord, unit)))
 
 def visualize(coords):
     lines = list()
@@ -62,13 +61,11 @@ def outersurface(queue):
             n = tuple(map(sum, zip(relcoords, coord)))
             if n in units:
                 s = s + 1
-            elif _b.min(*n) >= -1 and _b.max(*n) <= 21 and not n in visited:
+            elif min(*n) >= -1 and max(*n) <= 21 and not n in visited:
                 queue.append(n)
     return s
 
 parse()
-print("Input size:", len(units))
-print("Max x, y, z:", *maxcoord)
 print("Part 1:", allsurface())
 print("Part 2:", outersurface( [ (1, 1, 1) ] ))
 

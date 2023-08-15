@@ -1,7 +1,5 @@
-import sys, os, copy, re, itertools as I, operator as O
-import time
 import aoc
-B = __builtins__
+import itertools as I, operator as O
 
 easyinput = """\
 #.######

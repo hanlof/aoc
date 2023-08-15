@@ -1,5 +1,3 @@
-import re
-import operator
 import aoc
 
 class Monkey():

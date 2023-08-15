@@ -1,4 +1,3 @@
-import re, os
 import aoc
 
 class Directory():
