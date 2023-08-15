@@ -26,6 +26,17 @@ class TimedIO(StringIO):
     def close(s):
         s.times.append(datetime.datetime.now())
         super().close()
+    def gettime(s, regex):
+        m = re.search(regex, s.getvalue(), re.MULTILINE)
+        if m:
+            patternstart, patternend = m.span()
+            partstart = partend = 0
+            for n, time in enumerate(s.times):
+                partstart = partend
+                partend += len(s.parts[n])
+                if partstart <= patternend < partend:
+                    return (time - s.times[0]).total_seconds()
+        return None
 
 class Redir():
     def __init__(self, io):
@@ -39,43 +50,18 @@ class Redir():
         #del self._stringio    # free up some memory
         sys.stdout = self._stdout
 
-runday = lambda day: __import__("day%02d" % day)
-
-def findtime(times, parts, start, end):
-    spos = 0
-    for n, time in enumerate(times):
-        part = parts[n]
-        partlen = len(part)
-        epos = spos + partlen
-        if spos <= start < epos:
-            t1 = time
-        if spos <= end < epos:
-            t2 = time
-        spos = epos
-    return t2
-
 for i in range(1, 26):
-    #print(aoc.htmltitle(i), aoc.htmlanswers(i))
-    print(aoc.htmltitle(i), end="", flush=True)
+    correctanswers = aoc.htmlanswers(i)
+    desc = aoc.htmltitle(i)
+    print("Day %-2d " % i, end="")
     #with Redir(TimedIO(split=sys.stdout)) as o:
     with Redir(TimedIO(split=None)) as o:
-        before = datetime.datetime.now()
-        runday(i)
-        after = datetime.datetime.now()
-    
-    for n, (i, j) in enumerate(itertools.pairwise(o.io.times)):
-        seconds = (j - i).total_seconds()
-      #  print("%.03f" % seconds, repr(o.io.parts[n]))
-    alloutput = ("".join(o.io.parts))
-    p1 = re.search("^Part 1:.*$", alloutput, re.MULTILINE)
-    p2 = re.search("^Part 2:.*$", alloutput, re.MULTILINE)
-    stimestamp = o.io.times[0]
-    if p1:
-        p1timestamp = findtime(o.io.times, o.io.parts, *p1.span())
-    if p2:
-        p2timestamp = findtime(o.io.times, o.io.parts, *p2.span())
-    p1time = (p1timestamp - stimestamp).total_seconds()
-    p2time = (p2timestamp - p1timestamp).total_seconds()
-    tottime = (p2timestamp - stimestamp).total_seconds()
-    t = (after - stimestamp).total_seconds()
-    print("Timing:", p1time, p2time, tottime, t)
+        __import__("day%02d" % i)
+    t1 = o.io.gettime("^Part 1:.*$")
+    t2 = o.io.gettime("^Part 2:.*$")
+    if t1 and t2:
+        print("%.3f " % t2, end="")
+        print("\x1b[1m", "*" * ((int(t1 * 60))), sep="", end="\x1b[0m")
+        print("*" * ((int((t2 - t1) * 60))))
+    else:
+        print("day", i, "does not output 'Part 1'/'Part 2' strings")
