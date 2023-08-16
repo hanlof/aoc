@@ -43,8 +43,6 @@ class Valve():
     def __repr__(s):
         return "V<%s %d (%s)>" % (s.name, s.rate, str(s.tunnels))
 
-inputfile = open("inputdata/input16")
-allinput = inputfile.readlines()
 
 level = 0
 class System():
@@ -211,6 +209,8 @@ Valve GG has flow rate=0; tunnels lead to valves FF, HH
 Valve HH has flow rate=22; tunnel leads to valve GG
 Valve II has flow rate=0; tunnels lead to valves AA, JJ
 Valve JJ has flow rate=21; tunnel leads to valve II"""
+inputfile = open("inputdata/input16")
+allinput = inputfile.readlines()
 
 #s = System(easyinput.split("\n"))
 s = System(allinput)

@@ -1,6 +1,5 @@
 import aoc
 
-
 allinput = aoc.getinput()
 short = aoc_codeblocks[0]
 long = aoc_codeblocks[1]
@@ -24,12 +23,10 @@ def processqueue(s):
         queue[-1][1] = queue[-1][1] - 1
         if queue[-1][1] == 0:
             update = queue.pop()[0]
-
     ret = 0
     draw(cycle, x)
     if (cycle % 40) == 20:
         ret = cycle * x
-        #print(s, cycle, x)
     if (cycle % 40) == 0:
         picture.append(list())
     x = x + update
@@ -50,83 +47,8 @@ while len(queue) > 0:
     signalstrength = signalstrength + processqueue(">")
 
 del(picture[-1])
+p2str = aoc.bigletterstostring(picture)
+
 print("Part 1:", signalstrength)
-
-LETTERS={
-'P': """\
-###.
-#  #
-#  #
-###.
-#  .
-#   """,
-'L': """\
-#  .
-#  .
-#  .
-#  .
-#  .
-####""",
-'G': """\
- ##.
-#  #
-#  .
-# ##
-#  #
- ###""",
-'F': """\
-####
-#  .
-###.
-#  .
-#  .
-#  .""",
-'K': """\
-#  #
-# #.
-## .
-# #.
-# #.
-#  #""",
-'A': """\
- ##.
-#  #
-#  #
-####
-#  #
-#  #""",
-'Z': """\
-####
-   #
-  #.
- # .
-#  .
-####"""
-}
-
-import numpy
-pic = numpy.array(picture)
-r=numpy.rot90(pic, -1)
-o=r.reshape(8,5,6)
-letters = dict()
-for l, raster in LETTERS.items():
-    s = list()
-    for y, row in enumerate(raster.splitlines()):
-        for x, c in enumerate(row):
-            if c == "#": s.append( (y, x) )
-    letters[tuple(sorted(s))] = l
-
-print("Part 2: ", end="")
-for i in numpy.rot90(o, axes=(1, 2)):
-    s = list()
-    i = i[:,0:4]
-    for y, row in enumerate(i):
-        for x, n in enumerate(row):
-            if n == 1: s.append( (y, x) )
-    print(letters[tuple(sorted(s))], end="")
-print("")
-
-
-
-#print(pic[:, 0:5])
+print("Part 2:", p2str)
 

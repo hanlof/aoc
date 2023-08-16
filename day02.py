@@ -1,3 +1,5 @@
+import aoc
+
 # ROCK    = 1  loses to 2, wins to 3
 # PAPER   = 2  loses to 3, wins to 1
 # SCISSOR = 3  loses to 1, wins to 2
@@ -26,7 +28,5 @@ def part2scores(lines):
         if line[2] == 'Z': # should win
             yield 6 + RPS(line[0]).loses_to
 
-print("Day 2: Rock, Paper, Scissors")
-inputlines = open("inputdata/input02").readlines()
-print("Part 1:", sum(part1scores(inputlines)))
-print("Part 2:", sum(part2scores(inputlines)))
+print("Part 1:", sum(part1scores(aoc_inputlines)))
+print("Part 2:", sum(part2scores(aoc_inputlines)))

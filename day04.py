@@ -1,9 +1,7 @@
 import aoc
 
-allinput = open("inputdata/input04").readlines()
-
 p1ans, p2ans = 0, 0
-for i in allinput:
+for i in aoc_inputlines:
     r = re.search("(\d+)-(\d+),(\d+)-(\d+)", i)
     s1, e1, s2, e2 = map(int, r.groups())
     # part 1: if one range is completely within the other

@@ -12,7 +12,7 @@ def p1compact(treematrix):
                 if tree[0] >= visthreshold: # set trees visibility flag to 1 if it can be seen
                     tree[1] = 1
                     visthreshold = tree[0] + 1
-    return int(vmap[...,1].sum()) # return sum of vilibilty flags
+    return int(vmap[...,1].sum()) # return sum of visibilty flags
 
 def p2scores(omap):
     for y in range(omap.shape[0]):
@@ -28,15 +28,14 @@ def p2scores(omap):
                 totscore *= tscore
             yield totscore
 
-allinput = open("inputdata/input08").read().splitlines()
-origmap = numpy.array([[int(char) for char in list(line)] for line in allinput])
+origmap = numpy.array([[int(char) for char in list(line)] for line in aoc_inputlines])
 print("Part 1:", p1compact(origmap) )
 print("Part 2:", max(p2scores(origmap)))
 
 # this runs faster than p1compact() so it is kept here for fun.
 # p1fast runs 1000 times in about 4.2s compared to p1compact 6.8s
 treelist = []
-for i in allinput:
+for i in aoc_inputlines:
     treelist.append(list(i))
 def p1fast(treelist):
     visset = set()

@@ -5,7 +5,7 @@ class Directory():
         s.this = 0
         s.tot = 0
 
-allinput = aoc.getinput()
+allinput = aoc_inputlines
 dirsizes = dict()
 curpath = "/"
 for i in allinput:

@@ -21,9 +21,8 @@ def simrope(ropelen, moves):
             positions.add(rope[-1])
     return len(positions)
 
-allinput = open("inputdata/input09").readlines()
-print("Part 1:", simrope(2, allinput))
-print("Part 2:", simrope(10, allinput))
+print("Part 1:", simrope(2, aoc_inputlines))
+print("Part 2:", simrope(10, aoc_inputlines))
 
 
 

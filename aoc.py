@@ -9,8 +9,9 @@ from io import StringIO
 from lxml import etree
 
 """ Notes
+    * Auto download htmlpage and input UNLESS it's already there
+    * Submit answer by manual action. DON'T submit already answered tasks
     * Clean up html parsing
-    * Move day10 big ascii translation to here
     * Move day 22 interaction to here
     * Add some color printing
         if inp == bytes(b'\x1b[A'): print("UP")
@@ -19,6 +20,31 @@ from lxml import etree
         if inp == bytes(b'\x1b[C'): print("RIGHT")
 """
 verbose = 1
+
+
+def bigletterstostring(picture):
+    from bigletters import LETTERS
+    import numpy
+    ret = ""
+    pic = numpy.array(picture)
+    r=numpy.rot90(pic, -1)
+    o=r.reshape(8, 5, 6)
+    letters = dict()
+    for l, raster in LETTERS.items():
+        s = list()
+        for y, row in enumerate(raster.splitlines()):
+            for x, c in enumerate(row):
+                if c == "#": s.append( (y, x) )
+        letters[tuple(sorted(s))] = l
+
+    for i in numpy.rot90(o, axes=(1, 2)):
+        s = list()
+        i = i[:,0:4]
+        for y, row in enumerate(i):
+            for x, n in enumerate(row):
+                if n == 1: s.append( (y, x) )
+        ret += letters[tuple(sorted(s))]
+    return ret
 
 class Timing():
     def __init__(s, label="Timing:", lineprefix=" ", precision=2):
@@ -172,4 +198,10 @@ if importerframe:
     importerframe.frame.f_globals["fractions"] = __import__("fractions")
     importerframe.frame.f_globals["aoc_codeblocks"] = htmlcodesections()
     importerframe.frame.f_globals["aoc_constants"] = htmlemcodesections() + htmlcodeemsections()
+    importerframe.frame.f_globals['aoc_inputlines'] = getinput()
+    importerframe.frame.f_globals['aoc_sections'] = sections(getinput())
+    try:
+        importerframe.frame.f_globals['aoc_sections_int'] = sections(getinput(), conv=int)
+    except:
+        pass
 
