@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# XXX support different years (default to current)
+# XXX support NOT providing day and default to current if in december 1..25, otherwise skip
+# XXX add option to force download (to stdout)
+# XXX default to saving to file (and don't curl if file aleady exists)
+# XXX support fetching html pages for days
+
 if [ -z $1 ]; then
 	echo provide day plz
 	exit
@@ -25,7 +31,7 @@ try_get_sessioncookie()
 
 MOZ_DIRS=(
   ${HOME}/snap/firefox/common/.mozilla
-#  ${HOME}/.mozilla
+  ${HOME}/.mozilla
 )
 
 for mozdir in ${MOZ_DIRS[@]}; do
@@ -35,7 +41,6 @@ for mozdir in ${MOZ_DIRS[@]}; do
     try_get_sessioncookie "${mozdir}/firefox/${path}"
   done <<< "$PATHS"
 done
-
 
 latest=0
 if [ ${#sessioncookies[*]} == 0 ]; then
@@ -58,5 +63,5 @@ else
   read _ _ sessioncookie <<< "$s"
 fi
 
-curl -b session="$sessioncookie" https://adventofcode.com/2022/day/${which_day}/input
+curl -b session="$sessioncookie" https://adventofcode.com/2023/day/${which_day}/input
 
