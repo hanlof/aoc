@@ -13,6 +13,10 @@ from lxml import etree
     * Submit answer by manual action. DON'T submit already answered tasks
     * Clean up html parsing
     * Move day 22 interaction to here
+    * add debug() function
+    * parsing maps
+    * parsing maps as node trees
+    * producing .dot files
     * Add some color printing
         if inp == bytes(b'\x1b[A'): print("UP")
         if inp == bytes(b'\x1b[D'): print("LEFT")
@@ -96,7 +100,7 @@ def callerstackframe():
             continue
         caller = frame
         break
-    return caller
+    return caller or None
 
 def getverbosity():
     callerframe = callerstackframe()
@@ -112,10 +116,11 @@ def metadata(day=None):
         callerframe = callerstackframe()
         pyfile = callerframe.filename
         r = re.search("day(\d+)", pyfile)
-        if r[1]:
+        if r and r[1]:
             day = int(r[1])
         else:
             day = None
+    if not day: return None
     pyfile = "day%02d.py" % day
     basepath = os.path.dirname(pyfile)
     inputfname = os.path.join(basepath, "inputdata/input%02d" % day)
@@ -125,6 +130,7 @@ def metadata(day=None):
 def getinput(day=None, conv=None):
     verbose = getverbosity()
     cinfo = metadata(day=day)
+    if not cinfo: return None
     if day is None:
         inputfilename = cinfo['inputfname']
     else:
@@ -154,18 +160,21 @@ def gethtmletree(day=None):
 
 def htmlcodesections(day=None):
     c = metadata(day)
+    if c is None: return ""
     s = open(c['htmlfname']).read()
     a = re.findall("<pre><code>(.*?)</code></pre>", s, flags=re.MULTILINE | re.DOTALL)
     return [s.splitlines() for s in a]
 
 def htmlemcodesections(day=None):
     c = metadata(day)
+    if c is None: return ""
     s = open(c['htmlfname']).read()
     a = re.findall("<em><code>(.*?)</code></em>", s, flags=re.MULTILINE | re.DOTALL)
     return [s for s in a]
 
 def htmlcodeemsections(day=None):
     c = metadata(day)
+    if c is None: return ""
     s = open(c['htmlfname']).read()
     a = re.findall("<code><em>(.*?)</em></code>", s, flags=re.MULTILINE | re.DOTALL)
     return [s for s in a]
@@ -185,10 +194,11 @@ def htmltitle(day=None):
 
 # import everything that potentially will be useful right into the importer namespace
 importerframe = callerstackframe()
-if importerframe:
+if importerframe and metadata():
     importerframe.frame.f_globals["itertools"] = __import__("itertools")
     importerframe.frame.f_globals["re"] = __import__("re")
     importerframe.frame.f_globals["os"] = __import__("os")
+    importerframe.frame.f_globals["sys"] = __import__("sys")
     importerframe.frame.f_globals["numpy"] = __import__("numpy")
     importerframe.frame.f_globals["inspect"] = __import__("inspect")
     importerframe.frame.f_globals["threading"] = __import__("threading")
