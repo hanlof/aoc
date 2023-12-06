@@ -93,6 +93,7 @@ class Spinner():
 
 def callerstackframe():
     callstack = inspect.stack()
+    caller = None
     for frame in callstack:
         if frame.filename == callstack[0].filename:
             continue
@@ -161,33 +162,48 @@ def gethtmletree(day=None):
 def htmlcodesections(day=None):
     c = metadata(day)
     if c is None: return ""
-    s = open(c['htmlfname']).read()
+    try:
+        s = open(c['htmlfname']).read()
+    except:
+        return ""
     a = re.findall("<pre><code>(.*?)</code></pre>", s, flags=re.MULTILINE | re.DOTALL)
     return [s.splitlines() for s in a]
 
 def htmlemcodesections(day=None):
     c = metadata(day)
     if c is None: return ""
-    s = open(c['htmlfname']).read()
+    try:
+        s = open(c['htmlfname']).read()
+    except:
+        return ""
     a = re.findall("<em><code>(.*?)</code></em>", s, flags=re.MULTILINE | re.DOTALL)
     return [s for s in a]
 
 def htmlcodeemsections(day=None):
     c = metadata(day)
     if c is None: return ""
-    s = open(c['htmlfname']).read()
+    try:
+        s = open(c['htmlfname']).read()
+    except:
+        return ""
     a = re.findall("<code><em>(.*?)</em></code>", s, flags=re.MULTILINE | re.DOTALL)
     return [s for s in a]
 
 def htmlanswers(day=None):
     c = metadata(day)
-    s = open(c['htmlfname']).read()
+    try:
+        s = open(c['htmlfname']).read()
+    except:
+        return ""
     a = re.findall("Your puzzle answer was <code>(.*?)</code>", s, flags=re.MULTILINE | re.DOTALL)
     return a
 
 def htmltitle(day=None):
     c = metadata(day)
-    s = open(c['htmlfname']).read()
+    try:
+        s = open(c['htmlfname']).read()
+    except:
+        return ""
     a = re.findall("day-desc..<h2>(.*?)</h2>", s, flags=re.MULTILINE | re.DOTALL)
     return a[0]
     """day-desc..<h2>.*</h2>"""
