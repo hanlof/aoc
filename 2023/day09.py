@@ -1,12 +1,12 @@
 import aoc
 
-def extrapolate(hist):
-    assert len(hist) > 0
-    if all(map(lambda x: x == 0, hist)):
-        return [0] + hist + [0]
+def extrapolate(seq):
+    assert len(seq) > 0
+    if all(map(lambda x: x == 0, seq)):
+        return [0] + seq + [0]
     else:
-        nextlevel = extrapolate([b - a for a, b in itertools.pairwise(hist)])
-        return [hist[0] - nextlevel[0]] + hist + [nextlevel[-1] + hist[-1]]
+        deltas = extrapolate([b - a for a, b in itertools.pairwise(seq)])
+        return [seq[0] - deltas[0]] + seq + [deltas[-1] + seq[-1]]
 
 histories = [[int(s) for s in re.findall("-?\d+", l)] for l in aoc_inputlines]
 extrapolated = list(map(extrapolate, histories))

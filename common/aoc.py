@@ -215,6 +215,7 @@ if importerframe and metadata():
     importerframe.frame.f_globals["re"] = __import__("re")
     importerframe.frame.f_globals["os"] = __import__("os")
     importerframe.frame.f_globals["sys"] = __import__("sys")
+    importerframe.frame.f_globals["math"] = __import__("math")
     importerframe.frame.f_globals["numpy"] = __import__("numpy")
     importerframe.frame.f_globals["inspect"] = __import__("inspect")
     importerframe.frame.f_globals["threading"] = __import__("threading")
