@@ -1,0 +1,26 @@
+# 2023 day 1
+Finding (overlapping) substrings from front and back
+Hard AF for a day 1
+# 2023 day 2
+Determin min/max number of red/green/blue bricks from a limited number of random samples
+# 2023 day 3
+Find numbers in a 2D ascii map and check which coordinates they are adjacent to
+# 2023 day 4
+Check lotto lines and use caching to avoid it taking a silly amount of time
+# 2023 day 5
+Map ranges (of seeds) to (multiple) other ranges
+# 2023 day 6
+Toy boat racing. Solving 2nd degree equation and count integers within a range
+# 2023 day 7
+Scoring almost-poker hands (including wildcards)
+# 2023 day 8
+Follow left/right path choices until destination is reached.
+Find length of multiple paths and do Lowest Common Multiple
+BUT the cycles happen to match with the first path from start to finish
+# 2023 day 9
+Extrapolate numbers in a series by recursively finding the delta between two consecutive nums
+Lessons learned:
+* Parse negative integers, not just positive
+* If the condition is all elements in list is zero then don't check if the sum is zero! >_<
+
+
