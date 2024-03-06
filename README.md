@@ -1,3 +1,7 @@
+# All of the stuff below but now also 2023
+
+2023 is incomplete but something like 75% of the stars are done
+
 # My advent of Code 2022 solutions
 
 All written in python (python3)
